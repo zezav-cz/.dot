@@ -1,0 +1,4 @@
+configuration {
+    font: "MesloLGS Nerd Font Mono";
+    /* Rofi teď automaticky použije Noto Color Emoji jako fallback díky kroku 2 */
+}
