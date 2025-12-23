@@ -57,8 +57,6 @@ standardize_filename() {
 }
 
 open_nvim() {
-    cd "$VAULT_ROOT" || die "Could not change directory to $VAULT_ROOT"
-
     if [[ -n "$2" ]]; then
         # Launch nvim with Telescope command
         nvim -c "Telescope $2"
@@ -74,7 +72,7 @@ open_nvim() {
 # --- ACTIONS ---
 
 action_open_note() {
-    open_nvim "" "find_files"
+    open_nvim "" "frecency workspace=vnotes"
 }
 
 action_search_content() {
