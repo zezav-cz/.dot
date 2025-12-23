@@ -1,19 +1,6 @@
 [include]
     path = ~/.config/git/core.gitconfig
-[includeIf "gitdir:~/dev/recombee/"]
-	path = ~/.config/git/recombee.gitconfig
-[includeIf "gitdir:~/dev/fit/"]
-	path = ~/.config/git/fit.gitconfig
-
-[rerere]
-	enabled = true
-[column]
-	ui = auto
-[branch]
-	sort = -committerdate
-[core]
-	pager = delta
-[interactive]
-	diffFilter = delta --color-only
-[delta]
-	navigate = true
+; [includeIf "gitdir:~/dev/recombee/"]
+; 	path = ~/.config/git/recombee.gitconfig
+; [includeIf "gitdir:~/dev/fit/"]
+; 	path = ~/.config/git/fit.gitconfig

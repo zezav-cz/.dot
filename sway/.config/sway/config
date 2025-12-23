@@ -11,7 +11,7 @@ include $HOME/.config/sway/modes.d/*.conf
 #
 # Default wallpaper (more resolutions are available in /usr/share/backgrounds/sway/)
 # Requires: desktop-backgrounds-compat, swaybg, jxl-pixbuf-loader
-output * bg /usr/share/backgrounds/default.jxl fill
+output * bg $HOME/.config/sway/wallpaper/ford_mustang.jpg fill
 
 # Include configs from 3 locations:
 #  - /usr/share/sway/config.d

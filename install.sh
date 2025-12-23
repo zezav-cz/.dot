@@ -35,33 +35,51 @@ install_basics() {
         vim \
         neovim \
         stow \
-        code
+        code \
+        podman \
+        rofimoji \
+        nwg-bar
     info "Basic dependencies installed successfully."
 }
-download_fonts() {
+download_and_install_fonts() {
+    local install_dir="$HOME/.local/share/fonts"
     info "Downloading and installing fonts..."
     
-    mkdir -p fonts
-    if [ -f fonts/Meslo.zip ]; then
+    mkdir -p "$install_dir"
+    if [ -f "$install_dir/Meslo.zip" ]; then
         info "Fonts Meslo.zip already exists. Skipping download."
     else
-        wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip -O fonts/Meslo.zip
-        mkdir -p fonts/nerd-fonts/
-        unzip fonts/Meslo.zip -d fonts/nerd-fonts/
+        info "Downloading Meslo Nerd Font."
+        wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip -O "$install_dir/Meslo.zip"
+        mkdir -p "$install_dir/nerd-fonts/"
+        unzip "$install_dir/Meslo.zip" -d "$install_dir/nerd-fonts/"
     fi
+
+    if [ -f "$install_dir/fontawesome-6-console.zip" ]; then
+        info "Font Awesome Console font already exists. Skipping download."
+    else
+        info "Downloading Font Awesome Console font."
+        wget https://github.com/FortAwesome/Font-Awesome/releases/download/6.7.2/fontawesome-free-6.7.2-desktop.zip -O "$install_dir/fontawesome-6-console.zip"
+        mkdir -p "$install_dir/fontawesome-6-console/"
+        unzip "$install_dir/fontawesome-6-console.zip" -d "$install_dir/fontawesome-6-console/"
+    fi
+
+
+    fc-cache -f
     info "Fonts downloaded successfully."
 }
 install_oh_my_zsh() {
     info "Installing Oh My Zsh..."
     if [ -d "$HOME/.oh-my-zsh" ]; then
         info "Oh My Zsh is already installed. Skipping installation."
-        return
+    else
+        info "Cloning Oh My Zsh repository."
+        if ! command -v zsh &> /dev/null; then
+            info "Zsh is not installed. Installing zsh first."
+            sudo dnf install -y zsh
+        fi
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     fi
-    if ! command -v zsh &> /dev/null; then
-        info "Zsh is not installed. Installing zsh first."
-        sudo dnf install -y zsh
-    fi
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     if [ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
         info "zsh-syntax-highlighting plugin already exists. Pulling latest."
         git -C "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" pull
@@ -76,9 +94,12 @@ stow_configs() {
     info "Stowing configuration files..."
     stow foot
     stow git
-    # stow nvim
-    # stow sway
-    # stow systemd
+    stow mise
+    stow nvim
+    stow rofi
+    stow sway
+    stow systemd
+
 
     # ZSH
     if [ -f "$HOME/.zshrc" ] && [ ! -L "$HOME/.zshrc" ]; then
@@ -92,7 +113,7 @@ main() {
     add_repos
     install_basics
     install_mise
-    download_fonts
+    download_and_install_fonts
     install_oh_my_zsh
     stow_configs
 }

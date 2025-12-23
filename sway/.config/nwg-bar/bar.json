@@ -1,0 +1,26 @@
+[
+ {
+   "label": "Lock",
+   "exec": "swaymsg exec swaylock"
+ },
+ {
+   "label": "Logout",
+   "exec": "swaymsg exit"
+ },
+ {
+   "label": "Suspend",
+   "exec": "systemctl suspend"
+ },
+ {
+   "label": "Hibernate",
+   "exec": "systemctl hibernate"
+ },
+ {
+   "label": "Reboot",
+   "exec": "systemctl reboot"
+ },
+ {
+   "label": "Shutdown",
+   "exec": "systemctl -i poweroff"
+ }
+]
