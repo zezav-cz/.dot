@@ -6,6 +6,8 @@
     "sway/mode"
   ],
   "modules-right": [
+    "custom/gammastep",
+    "pulseaudio", // TODO
     "custom/do-not-disturbe-dunst",
     "idle_inhibitor",
     "network",
@@ -16,6 +18,32 @@
     "clock",
     "custom/power"
   ],
+  "custom/gammastep": {
+    "format": " {}",
+    "interval": 5,
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/gammastep.sh",
+    "on-click": "~/.config/waybar/scripts/gammastep.sh toggle"
+  },
+  "pulseaudio": {
+      // "scroll-step": 1, // %, can be a float
+      "format": "{volume}% {icon} {format_source}",
+      "format-bluetooth": "{volume}% {icon} {format_source}",
+      "format-bluetooth-muted": " {icon} {format_source}",
+      "format-muted": " {format_source}",
+      "format-source": "{volume}% ",
+      "format-source-muted": "",
+      "format-icons": {
+          "headphone": "",
+          "hands-free": "",
+          "headset": "",
+          "phone": "",
+          "portable": "",
+          "car": "",
+          "default": ["", "", ""]
+      },
+      "on-click": "pavucontrol"
+  },
   "sway/workspaces": {
     "tooltip": false,
     "all-outputs": true
@@ -26,10 +54,10 @@
     "on-click": "nwg-bar -x"
   },
   "bluetooth": {
-    "format": "  {status}",
-    "format-connected": "  {device_alias}",
-    "format-connected-battery": "  {device_alias} {device_battery_percentage}%",
-    "format-no-controller": "  N/A",
+    "format": " {status}",
+    "format-connected": " {device_alias}",
+    "format-connected-battery": " {device_alias} {device_battery_percentage}%",
+    "format-no-controller": " N/A",
     "format-icons": {
       "enabled": "",
       "disabled": ""
@@ -51,8 +79,8 @@
   "idle_inhibitor": {
     "format": "{icon}",
     "format-icons": {
-      "activated": "    On", // Coffee icon + Text
-      "deactivated": "    Off" // Same icon + Text
+      "activated": " On", // Coffee icon + Text
+      "deactivated": " Off" // Same icon + Text
     },
     "tooltip-format-activated": "Idle: Activated",
     "tooltip-format-deactivated": "Idle: Deactivated"
@@ -60,13 +88,13 @@
   // --- Network ---
   "network": {
     "interval": 5,
-    "format-wifi": "    {essid} ({signalStrength}%)",
-    "format-ethernet": "    {ifname}",
-    "format-disconnected": "    Disconnected",
+    "format-wifi": " {essid} ({signalStrength}%)",
+    "format-ethernet": " {ifname}",
+    "format-disconnected": " Disconnected",
     "tooltip-format": "{ifname}: {ipaddr}"
   },
   "sway/language": {
-    "format": "  {}", // Adds Keyboard icon
+    "format": " {}", // Adds Keyboard icon
     "tooltip": false
   },
   // --- Battery ---
@@ -90,7 +118,7 @@
   // --- Clocks ---
   "clock": {
     "interval": 10,
-    "format": "   {:%e %b %Y - %H:%M}",
+    "format": " {:%e %b %Y - %H:%M}",
     "tooltip": false
   }
 }

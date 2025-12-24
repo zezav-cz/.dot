@@ -1,7 +1,15 @@
 local M = {}
 
+local keys = {
+  { "<leader>c", "<cmd>CommentToggle<cr>", desc = "Toggle comment", mode = { "n", "v" } },
+}
+
 function M.spec()
-  return { 'terrortylor/nvim-comment', dependencies = 'JoosepAlviste/nvim-ts-context-commentstring' }
+  return {
+    'terrortylor/nvim-comment',
+    keys = keys,
+    dependencies = 'JoosepAlviste/nvim-ts-context-commentstring'
+  }
 end
 
 function M.setup()

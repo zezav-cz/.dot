@@ -1,0 +1,6 @@
+# Display the background image
+image=~/.config/swaylock/fsociaty.jpg
+scaling=fill
+color=1d2021
+show-failed-attempts
+show-keyboard-layout

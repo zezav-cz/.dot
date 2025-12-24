@@ -1,7 +1,17 @@
 local M = {}
 
+local keys = {
+  { "<leader>e", "<cmd>NvimTreeFindFileToggle<cr>", desc = "Toggle file tree" },
+}
+
 function M.spec()
-  return { "nvim-tree/nvim-tree.lua", version = "*", lazy = false, requires = { "nvim-tree/nvim-web-devicons" } }
+  return {
+    "nvim-tree/nvim-tree.lua",
+    version = "*",
+    lazy = false,
+    keys = keys,
+    requires = { "nvim-tree/nvim-web-devicons" }
+  }
 end
 
 function M.setup()

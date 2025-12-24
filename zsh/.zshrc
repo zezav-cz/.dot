@@ -20,6 +20,7 @@ plugins=(
 
 
 source $ZSH/oh-my-zsh.sh
+export TERM=xterm-256color
 
 alias vs='code ./'
 alias py='python3 -q '

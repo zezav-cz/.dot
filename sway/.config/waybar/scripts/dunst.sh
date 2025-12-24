@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Handle the "toggle" argument
-if [ "$1" = "toggle" ]; then
+toggle() {
     if [ "$(dunstctl is-paused)" == "false" ]; then
         notify-send -u normal -t 2000 "Dunst" "Notifications Paused"
         sleep 0.5 
@@ -11,6 +10,10 @@ if [ "$1" = "toggle" ]; then
         notify-send -u normal -t 2000 "Dunst" "Notifications Resumed"
     fi
     pkill -SIGRTMIN+10 waybar
+}
+# Handle the "toggle" argument
+if [ "$1" = "toggle" ]; then
+    toggle
     exit
 fi
 

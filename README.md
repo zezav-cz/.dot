@@ -1,4 +1,8 @@
-fc-cache -f -v
+// sudo dnf copr enable alternateved/cliphist
+// sudo dnf install cliphist
 
-    // sudo dnf copr enable alternateved/cliphist
-    // sudo dnf install cliphist
+# TODO
+- vn script
+- slack
+- discord
+

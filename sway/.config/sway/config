@@ -1,17 +1,32 @@
-
-set $mod Mod1
+set $mod Mod4
 
 include $HOME/.config/sway/config.d/variables.conf
 include $HOME/.config/sway/config.d/keybindings.conf
 include $HOME/.config/sway/config.d/appereance.conf
+include $HOME/.config/sway/config.d/inputs.conf
+include $HOME/.config/sway/config.d/cutom-keymap.conf
 include $HOME/.config/sway/modes.d/*.conf
+exec gammastep -o
 
-# Home row direction keys, like vim
-### Output configuration
-#
-# Default wallpaper (more resolutions are available in /usr/share/backgrounds/sway/)
-# Requires: desktop-backgrounds-compat, swaybg, jxl-pixbuf-loader
+# Setup theme for gtk apps
+set $gnome-schema org.gnome.desktop.interface
+exec_always {
+  gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
+  gsettings set org.gnome.desktop.interface icon-theme 'Adwaita'
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  # gsettings set $gnome-schema font-name
+}
+# Sledování textu
+exec wl-paste --type text --watch cliphist store
+# Sledování obrázků
+exec wl-paste --type image --watch cliphist store
+# Historie schránky v Rofi na Ctrl+Shift+v
+bindsym --release $mod+Shift+v exec cliphist list | rofi -dmenu -p "Clipboard" | cliphist decode | wl-copy
+exec /bin/sh -c "command -v slack >/dev/null && slack -u"
+
+
 output * bg $HOME/.config/sway/wallpaper/ford_mustang.jpg fill
+# output * bg $HOME/.config/sway/wallpaper/joanna_wellick.jpg fill
 
 # Include configs from 3 locations:
 #  - /usr/share/sway/config.d

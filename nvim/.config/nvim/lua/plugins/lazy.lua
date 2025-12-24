@@ -27,6 +27,8 @@ local plugins = {
   slueth_vim = require("plugins.slueth_vim"),
   window = require("plugins.windows"),
   barbar = require("plugins.barbar"),
+  telescope_file_browser = require("plugins.telescope_file_browser"),
+  obsidian = require("plugins.obsidian"),
 }
 
 require("lazy").setup({
@@ -42,6 +44,8 @@ require("lazy").setup({
   plugins.slueth_vim.spec(),
   plugins.window.spec(),
   plugins.barbar.spec(),
+  plugins.telescope_file_browser.spec(),
+  plugins.obsidian.spec(),
 })
 
 plugins.gruvbox.setup()
@@ -56,3 +60,5 @@ plugins.conform.setup()
 plugins.slueth_vim.setup()
 plugins.window.setup()
 plugins.barbar.setup()
+plugins.telescope_file_browser.setup()
+plugins.obsidian.setup()
