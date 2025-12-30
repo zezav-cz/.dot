@@ -152,37 +152,8 @@ install_fonts() {
     info "Font installation completed."
 }
 
-download_and_install_fonts() {
-    local install_dir="$HOME/.local/share/fonts"
-    info "Downloading and installing fonts..."
-
-    mkdir -p "$install_dir"
-    if [ -f "$install_dir/Meslo.zip" ]; then
-        info "Fonts Meslo.zip already exists. Skipping download."
-    else
-        info "Downloading Meslo Nerd Font."
-        wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip -O "$install_dir/Meslo.zip"
-        mkdir -p "$install_dir/nerd-fonts/"
-        unzip "$install_dir/Meslo.zip" -d "$install_dir/nerd-fonts/"
-    fi
-
-    if [ -f "$install_dir/fontawesome-6-console.zip" ]; then
-        info "Font Awesome Console font already exists. Skipping download."
-    else
-        info "Downloading Font Awesome Console font."
-        wget https://github.com/FortAwesome/Font-Awesome/releases/download/6.7.2/fontawesome-free-6.7.2-desktop.zip -O "$install_dir/fontawesome-6-console.zip"
-        mkdir -p "$install_dir/fontawesome-6-console/"
-        unzip "$install_dir/fontawesome-6-console.zip" -d "$install_dir/fontawesome-6-console/"
-    fi
-
-
-    fc-cache -f
-    info "Fonts downloaded successfully."
-}
-
 stow_configs() {
     info "Stowing configuration files..."
-    # stow foot # fails
     set -x
     stow git
     stow mise
@@ -220,7 +191,6 @@ main() {
     install
     info "Installing fonts"
     install_fonts "Meslo"
-    # download_and_install_fonts
     stow_configs
     set_up_vnotes
 }
