@@ -27,8 +27,11 @@ cd ~/.dot
 Configuration files are organized by application/category and managed with GNU Stow for easy deployment and maintenance.
 
 ## TODO
-- vn script
-- slack
-- discord
-- telegram
-- FW
+- [ ] vn script
+- [ ] slack
+- [ ] discord
+- [ ] telegram
+- [ ] FW
+- [ ] Other repository cloning
+    - [ ] secrets
+
