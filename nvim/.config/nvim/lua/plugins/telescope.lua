@@ -113,7 +113,7 @@ function M.setup()
         show_unindexed = true,
         ignore_patterns = { "*.git/*" },
         workspaces = {
-          ["vnotes"] = "/home/jan/VNotes", -- Use absolute path here
+          ["vnotes"] = "/home/jan/vnotes", -- Use absolute path here
         }
       },
     },

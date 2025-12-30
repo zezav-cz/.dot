@@ -15,7 +15,7 @@ PublishPort=21027:21027/udp
 # config
 Volume=%h/.config/syncthing:/var/syncthing/config:rw
 # sync falders
-Volume=%h/VNotes:/var/syncthing/VNotes:rw
+Volume=%h/vnotes:/var/syncthing/VNotes:rw
 # UID:GID mapping
 User=%U
 Group=%G

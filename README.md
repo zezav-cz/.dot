@@ -34,4 +34,5 @@ Configuration files are organized by application/category and managed with GNU S
 - [ ] FW
 - [ ] Other repository cloning
     - [ ] secrets
-
+- [ ] Use move ENV
+    - [ ] vault path
