@@ -219,7 +219,8 @@ action_fix_names() {
   local regex_date='[0-9]{4}-[0-9]{2}-[0-9]{2}'
   local name_pattern='[a-z0-9_-]+'
 
-  incorect_inbox=$(find "$DIR_INBOX" -regextype egrep -type f -name "*.md" ! -regex ".*/${regex_date}_${name_pattern}\.md" 2>/dev/null)
+  # Allow inbox files with optional date prefix: either "YYYY-MM-DD_<name>.md" or "<name>.md"
+  incorect_inbox=$(find "$DIR_INBOX" -regextype egrep -type f -name "*.md" ! -regex ".*/(${regex_date}_)?${name_pattern}\.md" 2>/dev/null)
   incorect_zettel=$(find "$DIR_ZETTEL" -regextype egrep -type f -name "*.md" ! -regex ".*/${name_pattern}\.md" 2>/dev/null)
   incorect_projects=$(find "$DIR_PROJECTS" -regextype egrep -type f -name "*.md" ! -regex ".*/${name_pattern}\.md" 2>/dev/null)
 
