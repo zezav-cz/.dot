@@ -36,3 +36,15 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
+-- Enable list mode (to show whitespace)
+vim.opt.list = true
+
+-- Configure how whitespace looks
+-- space: · (middle dot)
+-- tab:   → (arrow) followed by a space
+vim.opt.listchars = {
+    space = '·',
+    tab = '→ ',
+    trail = '·', -- Optional: show trailing spaces as dots as well
+    nbsp = '␣',  -- Optional: non-breaking space
+}

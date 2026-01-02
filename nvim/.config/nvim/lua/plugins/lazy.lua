@@ -29,6 +29,7 @@ local plugins = {
   barbar = require("plugins.barbar"),
   telescope_file_browser = require("plugins.telescope_file_browser"),
   obsidian = require("plugins.obsidian"),
+  lualine = require("plugins.lualine"),
 }
 
 require("lazy").setup({
@@ -46,6 +47,7 @@ require("lazy").setup({
   plugins.barbar.spec(),
   plugins.telescope_file_browser.spec(),
   plugins.obsidian.spec(),
+  plugins.lualine.spec(),
 })
 
 plugins.gruvbox.setup()
@@ -62,3 +64,4 @@ plugins.window.setup()
 plugins.barbar.setup()
 plugins.telescope_file_browser.setup()
 plugins.obsidian.setup()
+plugins.lualine.setup()
