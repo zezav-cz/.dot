@@ -1,21 +1,21 @@
 [user]
-	name = Jan Trojak
-	email = trojakjan24@gmail.com
+  name = Jan Trojak
+  email = trojakjan24@gmail.com
 [color]
-	ui = auto
+  ui = auto
 [push]
-	default = simple
+  default = simple
 [core]
-	autocrlf = input
+  autocrlf = input
 [alias]
-	st = status
-	ci = commit
-	co = checkout
-	br = branch
-	ll = log --oneline --graph --all --decorate
+  st = status
+  ci = commit
+  co = checkout
+  br = branch
+  ll = log --oneline --graph --all --decorate
 [submodule]
-	recurse = true
+  recurse = true
 [init]
-	defaultBranch = main
+  defaultBranch = main
 [column]
-	ui = auto
+  ui = auto

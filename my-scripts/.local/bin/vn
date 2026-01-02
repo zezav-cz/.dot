@@ -159,8 +159,8 @@ action_paste_screenshot() {
   if xclip -selection clipboard -t image/png -o > "$filepath" 2>/dev/null; then
     # Check if file has size (xclip creates empty file if clipboard is empty)
     if [[ ! -s "$filepath" ]]; then
-       rm "$filepath"
-       die "No image in clipboard or xclip failed."
+      rm "$filepath"
+      die "No image in clipboard or xclip failed."
     fi
     echo "✅ Screenshot saved: ${filename}"
     echo "📋 Markdown link: ![[${filename}]]"

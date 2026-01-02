@@ -3,7 +3,7 @@
 toggle() {
     if [ "$(dunstctl is-paused)" == "false" ]; then
         notify-send -u normal -t 2000 "Dunst" "Notifications Paused"
-        sleep 0.5 
+        sleep 0.5
         dunstctl set-paused true
     else
         dunstctl set-paused false
