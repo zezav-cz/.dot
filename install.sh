@@ -1,28 +1,15 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
-# Configuration
-OBSIDIAN_VERSION="1.10.6"
-NERD_FONTS="Meslo"
+info() { echo -e "\e[32m[INFO]\e[0m $1"; }
+error() { echo -e "\e[31m[ERROR]\e[0m $1"; }
+warning() { echo -e "\e[33m[WARNING]\e[0m $1"; }
 
-GREEN=$'\033[0;32m'
-RED=$'\033[0;31m'
-YELLOW=$'\033[0;33m'
-GREY=$'\033[90m'
-RESET=$'\033[0m'
 
-info() { echo -e "${GREEN}[INFO]${RESET} $1"; }
-error() { echo -e "${RED}[ERROR]${RESET} $1"; }
-warning() { echo -e "${YELLOW}[WARNING]${RESET} $1"; }
-
-run() {
-    "$@" 2>&1 | sed "s/^/   ${GREY}/;s/$/${RESET}/"
-}
 
 install() {
     install_repos() {
-    local vscode_repo
-    vscode_repo=$(cat <<'EOF'
+    local vscode_repo=$(cat <<EOF
 [code]
 name=Visual Studio Code
 baseurl=https://packages.microsoft.com/yumrepos/vscode
@@ -33,32 +20,32 @@ gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 EOF
 )
-        run sudo dnf install -y dnf-plugins-core
-        run sudo dnf copr enable tofik/nwg-shell -y
-        run sudo dnf copr enable alternateved/cliphist -y
-        run sudo dnf copr enable jdxcode/mise -y
-        run sudo dnf copr enable che/nerd-fonts -y
+        sudo dnf install -y dnf-plugins-core
+        sudo dnf copr enable tofik/nwg-shell -y
+        sudo dnf copr enable alternateved/cliphist -y
+        sudo dnf copr enable jdxcode/mise -y
+        sudo dnf copr enable che/nerd-fonts -y
         # VScode
-        run sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+        sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
         echo -e "$vscode_repo" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
     }
 
     # Install packages
     install_packages() {
-        run sudo dnf install -y \
+        sudo dnf install -y \
             git tig \
             ruby ruby-devel golang mise \
             wget curl code \
             vim neovim \
             stow \
             podman \
-            rofimoji  grim slurp swappy wl-clipboard geoclue2 gammastep \
+            rofimoji grim slurp swappy wl-clipboard geoclue2 gammastep \
             nwg-bar nwg-displays \
             fuse fuse-libs \
             cliphist \
             nerd-fonts \
             git-core zlib-devel libffi-devel readline-devel openssl-devel \
-                make gcc patch autoconf automake bison libtool sqlite-devel \
+                make gcc patch autoconf automake bison libtool sqlite-devel libyaml-devel \
             cockpit-image-builder.noarch cockpit-packagekit.noarch \
                 cockpit-podman.noarch cockpit-selinux.noarch \
                 cockpit-storaged.noarch  cockpit-networkmanager pcp python3-pcp
@@ -72,16 +59,16 @@ EOF
             info "Cloning Oh My Zsh repository."
             if ! command -v zsh &> /dev/null; then
                 info "Zsh is not installed. Installing zsh first."
-                run sudo dnf install -y zsh
+                sudo dnf install -y zsh
             fi
-            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
         fi
         if [ -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
-            info "zsh-autosuggestions plugin already exists. Pulling latest."
-            run git -C "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" pull
+            info "zsh-syntax-highlighting plugin already exists. Pulling latest."
+            git -C "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" pull
         else
-            info "Cloning zsh-autosuggestions plugin."
-            run git clone https://github.com/zsh-users/zsh-autosuggestions "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
+            info "Cloning zsh-syntax-highlighting plugin."
+            git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
         fi
     }
 
@@ -98,29 +85,21 @@ EOF
         local version=$1
         local obsidian_url="https://github.com/obsidianmd/obsidian-releases/releases/download/v$version/Obsidian-$version.AppImage"
         info "Downloading Obsidian version $version from $obsidian_url"
-        if ! sudo wget -q "$obsidian_url" -O /usr/local/bin/obsidian; then
-            error "Failed to download Obsidian from $obsidian_url"
-            return 1
-        fi
-        info "Setting executable permissions for Obsidian"
+        sudo wget -q "$obsidian_url" -O /usr/local/bin/obsidian
+        info "Installing Obsidian version $version into /usr/local/bin/obsidian"
         sudo chmod +x /usr/local/bin/obsidian
     }
 
-    # install_telegram() {
-    #     info "Installing Telegram Desktop..."
-    #     wget -q https://telegram.org/dl/desktop/linux -O /tmp/telegram.tar.xz
-    #     tar -xf /tmp/telegram.tar.xz -C /tmp/
-    #     sudo mv /tmp/Telegram/* /usr/local/bin/
-    # }
-
     info "Installing basic packages..."
     install_repos
-    info "Installing packages..."
+    info "Inserting packages..."
     install_packages
     info "Installing oh-my-zsh..."
     install_oh_my_zsh
-    info "Installing Obsidian..."
-    install_obsidian "$OBSIDIAN_VERSION"
+    info "Inserting Obsidian..."
+    install_obsidian "1.10.6"
+
+
 }
 
 install_fonts() {
@@ -163,51 +142,79 @@ install_fonts() {
     info "Font installation completed."
 }
 
+download_and_install_fonts() {
+    local install_dir="$HOME/.local/share/fonts"
+    info "Downloading and installing fonts..."
+
+    mkdir -p "$install_dir"
+    if [ -f "$install_dir/Meslo.zip" ]; then
+        info "Fonts Meslo.zip already exists. Skipping download."
+    else
+        info "Downloading Meslo Nerd Font."
+        wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip -O "$install_dir/Meslo.zip"
+        mkdir -p "$install_dir/nerd-fonts/"
+        unzip "$install_dir/Meslo.zip" -d "$install_dir/nerd-fonts/"
+    fi
+
+    if [ -f "$install_dir/fontawesome-6-console.zip" ]; then
+        info "Font Awesome Console font already exists. Skipping download."
+    else
+        info "Downloading Font Awesome Console font."
+        wget https://github.com/FortAwesome/Font-Awesome/releases/download/6.7.2/fontawesome-free-6.7.2-desktop.zip -O "$install_dir/fontawesome-6-console.zip"
+        mkdir -p "$install_dir/fontawesome-6-console/"
+        unzip "$install_dir/fontawesome-6-console.zip" -d "$install_dir/fontawesome-6-console/"
+    fi
+
+
+    fc-cache -f
+    info "Fonts downloaded successfully."
+}
+
 stow_configs() {
     info "Stowing configuration files..."
-    run stow git -v
-    run stow mise -v
-    run stow my-scripts --no-folding -v
-    run stow nvim -v
-    run stow rofi -v
-    run stow sway -v
-    run stow syncing --no-folding -v
-    run stow systemd -v
+    # stow foot # fails
+    set -x
+    stow git
+    stow mise
+    stow nvim
+    stow rofi
+    stow sway
+    stow systemd
+    stow my-scripts --no-folding
+    stow tmux
 
     # ZSH
+    set +x
     if [ -f "$HOME/.zshrc" ] && [ ! -L "$HOME/.zshrc" ]; then
-        rm "$HOME/.zshrc"
+        set -x ;rm "$HOME/.zshrc" ; set +x
     fi
-    run stow zsh -v
+    set -x ; stow zsh ;set +x
+
 }
 
-set_up_systemd() {
-    info "Setting up systemd services..."
-    systemctl --user enable git-autopush-vnotes.timer
-}
 
 set_up_vnotes() {
     info "Setting up VNotes..."
-    local vnotes_dir="$HOME/vnotes"
+    local vnotes_dir="$HOME/VNotes"
     if [ -d "$vnotes_dir/.git" ]; then
         info "VNotes repository already exists. Pulling latest changes."
-        run git -C "$vnotes_dir" pull
+        git -C "$vnotes_dir" pull
         return 0
     fi
-    run git clone git@github.com:zezav-cz/vnotes.git "$vnotes_dir"
+    git clone git@github.com:zezav-cz/vnotes.git "$vnotes_dir"
     info "VNotes set up successfully."
 }
 
 main() {
-    info "Starting installation"
+    info "Starting installatoin"
     install
     info "Installing fonts"
-    install_fonts "$NERD_FONTS"
+    install_fonts "Meslo"
+    # download_and_install_fonts
     stow_configs
     set_up_vnotes
-    set_up_systemd
 }
 
-cd "$(dirname "$0")"
+cd $(dirname "$0")
 main "$@"
-cd - > /dev/null
+cd -

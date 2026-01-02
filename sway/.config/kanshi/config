@@ -1,0 +1,13 @@
+profile laptop {
+    output eDP-1 enable
+}
+
+profile home_f11 {
+  output "Dell Inc. DELL P3223QE 84CPL04" {
+    position 0,0
+  }
+  output "eDP-1" {
+    scale 2
+    position 960,2160
+  }
+}

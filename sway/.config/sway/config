@@ -23,10 +23,10 @@ exec wl-paste --type image --watch cliphist store
 # Historie schránky v Rofi na Ctrl+Shift+v
 bindsym --release $mod+Shift+v exec cliphist list | rofi -dmenu -p "Clipboard" | cliphist decode | wl-copy
 exec /bin/sh -c "command -v slack >/dev/null && slack -u"
+exec kanshi
 
-
-output * bg $HOME/.config/sway/wallpaper/ford_mustang.jpg fill
-# output * bg $HOME/.config/sway/wallpaper/joanna_wellick.jpg fill
+# output * bg $HOME/.config/sway/wallpaper/ford_mustang.jpg fill
+output * bg $HOME/.config/sway/wallpaper/mr_orbot_4k.jpg fill
 
 # Include configs from 3 locations:
 #  - /usr/share/sway/config.d
