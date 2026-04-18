@@ -1,0 +1,36 @@
+# Claude Code
+**/.claude/settings.local.json
+
+# Editors
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Languages
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+
+# Build
+*.o
+*.so
+dist/
+build/
+**/.claude/
+
+# Puppet local dev files
+.mise.local.toml
+README.local.md
+

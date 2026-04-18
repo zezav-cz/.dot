@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# --- CONFIGURATION ---
+# Change this to the absolute path of your vault
+VAULT_ROOT="${HOME}/vnotes"
+
+DIR_INBOX="${VAULT_ROOT}/00_inbox"
+DIR_ZETTEL="${VAULT_ROOT}/10_zettelkasten"
+DIR_PROJECTS="${VAULT_ROOT}/30_projects"
+DIR_ATTACHMENTS="${VAULT_ROOT}/90_attachments"
+
+# --- VISUALS & COLORS ---
+# We use $'\e...' to ensure Bash interprets the escape codes correctly
+C_RESET=$'\e[0m'
+C_RED=$'\e[1;31m'
+C_GREEN=$'\e[1;32m'
+C_YELLOW=$'\e[1;33m'
+C_BLUE=$'\e[1;34m'
+C_CYAN=$'\e[1;36m'
+C_GRAY=$'\e[0;90m'
+
+# Bitmap Emojis / Icons
+IC_OK="✅"
+IC_ERR="❌"
+IC_WARN="⚠️ "
+IC_INFO="ℹ️ "
+IC_SEARCH="🔍"
+IC_FILE="📄"
+IC_FOLDER="📂"
+IC_CLIP="📋"
+IC_EDIT="✏️ "
+IC_INST="💿"
+
+# --- SYSTEM HELPERS ---
+
+# Logging functions
+log_info() {
+  printf "${C_BLUE}${IC_INFO} %s${C_RESET}\n" "$1"
+}
+
+log_success() {
+  printf "${C_GREEN}${IC_OK} %s${C_RESET}\n" "$1"
+}
+
+log_warn() {
+  printf "${C_YELLOW}${IC_WARN} %s${C_RESET}\n" "$1"
+}
+
+log_err() {
+  printf "${C_RED}${IC_ERR} %s${C_RESET}\n" "$1" >&2
+}
+
+# Print error and exit
+die() {
+  log_err "$1"
+  exit 1
+}
+
+# Ensure directories exist
+ensure_dirs() {
+  mkdir -p "$DIR_INBOX" "$DIR_ZETTEL" "$DIR_PROJECTS" "$DIR_ATTACHMENTS"
+}
+
+# Standardize filename
+# Args: $1 = string to standardize, $2 = "true" to allow slashes (optional)
+standardize_filename() {
+  local input="$1"
+  local allow_slashes="$2"
+
+  # Convert to lowercase and normalize (requires iconv for ascii conversion)
+  local title=$(echo "$input" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT)
+
+  # Replace spaces with underscores
+  title="${title// /_}"
+
+  # Remove characters based on allow_slashes flag
+  if [[ "$allow_slashes" == "true" ]]; then
+    # Allow alphanumeric, underscore, hyphen, slash
+    title=$(echo "$title" | sed 's/[^a-z0-9_\-\/]//g')
+    # Deduplicate slashes
+    title=$(echo "$title" | sed -E 's/\/+/\//g')
+    # Trim slashes
+    title=$(echo "$title" | sed -E 's/^\///; s/\/$//')
+  else
+    # Allow alphanumeric, underscore, hyphen
+    title=$(echo "$title" | sed 's/[^a-z0-9_\-]//g')
+  fi
+
+  # Deduplicate underscores and hyphens
+  title=$(echo "$title" | sed -E 's/_+/_/g; s/-+/-/g')
+
+  # Trim leading/trailing underscores and hyphens
+  title=$(echo "$title" | sed -E 's/^[_ -]+//; s/[_ -]+$//')
+
+  echo "$title"
+}
+
+# --- ACTIONS ---
+
+action_search() {
+  # Open nvim in the vault root
+  nvim "$VAULT_ROOT"
+}
+
+action_create() {
+  local title="$1"
+
+  if [[ -z "$title" ]]; then
+    die "Title is required\n    Usage: vn create <title>"
+  fi
+
+  local date_prefix=$(date +%Y-%m-%d)
+  local timestamp=$(date +%H%M)
+  local clean_title=$(standardize_filename "$title" "false")
+  local filename="${date_prefix}_${timestamp}_${clean_title}.md"
+  local filepath="${DIR_INBOX}/${filename}"
+
+  nvim "$filepath"
+}
+
+action_screenshot() {
+  local name="$1"
+  local date_prefix=$(date +%Y-%m-%d)
+  local timestamp=$(date +%H%M%S)
+  local filename=""
+
+  if [[ -n "$name" ]]; then
+    local clean_name=$(standardize_filename "$name" "false")
+    filename="${date_prefix}_${timestamp}_${clean_name}.png"
+  else
+    filename="${date_prefix}_${timestamp}_screenshot.png"
+  fi
+
+  local filepath="${DIR_ATTACHMENTS}/${filename}"
+
+  if ! command -v xclip &> /dev/null; then
+    log_err "xclip not found. Install with: sudo apt install xclip"
+    die "Cannot proceed without xclip."
+  fi
+
+  # Save clipboard content to file
+  if xclip -selection clipboard -t image/png -o > "$filepath" 2>/dev/null; then
+    # Check if file has size (xclip creates empty file if clipboard is empty)
+    if [[ ! -s "$filepath" ]]; then
+      rm "$filepath"
+      die "No image in clipboard or xclip failed."
+    fi
+    log_success "Screenshot saved: ${filename}"
+    printf "${C_YELLOW}${IC_CLIP} Markdown link:${C_RESET} ![[%s]]\n" "${filename}"
+  else
+    rm -f "$filepath"
+    die "No image in clipboard or xclip error."
+  fi
+}
+
+action_install() {
+  local script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+  local bin_dir="${HOME}/.local/bin"
+  local symlink_path="${bin_dir}/vn"
+
+  # Ensure ~/.local/bin exists
+  mkdir -p "$bin_dir"
+
+  # Check if symlink already exists
+  if [[ -L "$symlink_path" ]]; then
+    local current_target=$(readlink "$symlink_path")
+    if [[ "$current_target" == "$script_path" ]]; then
+      log_success "Already installed: $symlink_path -> $script_path"
+      return 0
+    else
+      log_warn "Symlink exists but points to different location:"
+      echo "    Current: $current_target"
+      echo "    New:     $script_path"
+      read -p "Replace? (y/N): " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        die "Installation cancelled"
+      fi
+      rm "$symlink_path"
+    fi
+  elif [[ -e "$symlink_path" ]]; then
+    die "File exists but is not a symlink: $symlink_path"
+  fi
+
+  # Create symlink
+  if ln -s "$script_path" "$symlink_path"; then
+    log_success "Installed: $symlink_path -> $script_path"
+    printf "\n${IC_INFO} Make sure ${C_BLUE}${bin_dir}${C_RESET} is in your PATH.\n"
+    echo "Add this to your ~/.bashrc or ~/.zshrc if needed:"
+    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+  else
+    die "Failed to create symlink"
+  fi
+}
+
+show_help() {
+  cat << EOF
+${C_BLUE}VNOTES${C_RESET} - Simple Note Management
+
+${C_YELLOW}USAGE:${C_RESET}
+  vn <command> [<args>]
+
+${C_YELLOW}COMMANDS:${C_RESET}
+  ${C_GREEN}search, s${C_RESET}        ${IC_SEARCH} Open vault in Neovim
+  ${C_GREEN}create, c${C_RESET}        ${IC_EDIT} Create new inbox note
+  ${C_GREEN}screenshot, i${C_RESET}    ${IC_CLIP} Paste screenshot from clipboard
+  ${C_GREEN}install${C_RESET}          ${IC_INST} Install to ~/.local/bin/vn
+
+${C_YELLOW}EXAMPLES:${C_RESET}
+  vn search
+  vn create "My Note Title"
+  vn screenshot myimage
+  vn install
+EOF
+}
+
+# --- MAIN ---
+
+main() {
+  ensure_dirs
+
+  if [[ $# -eq 0 ]]; then
+    show_help
+    exit 0
+  fi
+
+  local cmd="$1"
+  shift # Remove command from argument list
+
+  case "$cmd" in
+    search|s|open)
+      action_search
+      ;;
+    create|c|new|inbox)
+      action_create "$*"
+      ;;
+    screenshot|i|img|paste)
+      action_screenshot "$1"
+      ;;
+    install)
+      action_install
+      ;;
+    --help|-h)
+      show_help
+      ;;
+    *)
+      log_err "Unknown command: $cmd"
+      show_help
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

@@ -1,0 +1,21 @@
+[Unit]
+Description=SSH Key Agent
+Documentation=man:ssh-agent(1) man:ssh-add(1)
+
+[Service]
+Type=simple
+# %t -> /run/user/<uid>
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
+# Fedora ships askpass under /usr/libexec/openssh/; /usr/bin/ssh-askpass doesn't exist.
+Environment=SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass
+Environment=SSH_ASKPASS_REQUIRE=prefer
+ExecStart=/usr/bin/ssh-agent -D -a $SSH_AUTH_SOCK
+# Wait until the socket is up before loading keys.
+ExecStartPost=/bin/bash -c 'while [[ ! -S "$SSH_AUTH_SOCK" ]]; do sleep 0.1; done'
+# Load keys listed in ~/.config/ssh-agent/keys.conf (each added with -c: confirm on use).
+# Leading '-' makes failure non-fatal (e.g. missing config, locked session at boot).
+ExecStartPost=-%h/.local/bin/ssh-agent-load-keys
+ExecStop=kill $MAINPID
+
+[Install]
+WantedBy=default.target

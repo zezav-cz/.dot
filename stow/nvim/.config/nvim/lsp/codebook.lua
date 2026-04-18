@@ -1,0 +1,26 @@
+---@type vim.lsp.Config
+return {
+  cmd = { 'codebook-lsp', 'serve' },
+  filetypes = {
+    'c',
+    'css',
+    'go',
+    'haskell',
+    'html',
+    'java',
+    'javascript',
+    'javascriptreact',
+    'lua',
+    'php',
+    'python',
+    'ruby',
+    'rust',
+    'swift',
+    'toml',
+    'text',
+    'typescript',
+    'typescriptreact',
+    'zig',
+  },
+  root_markers = { '.git', 'codebook.toml', '.codebook.toml' },
+}

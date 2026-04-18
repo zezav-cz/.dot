@@ -1,0 +1,100 @@
+# ----------------------------------------
+# Gruvbox PURE WHITE for k9s (No Yellow)
+# ----------------------------------------
+foreground: &foreground "#282828" # Tmavě šedá/černá
+background: &background "#ffffff" # Čistě bílá
+current_line: &current_line "#d5c4a1"
+selection: &selection "#ebdbb2"
+comment: &comment "#928374"
+cyan: &cyan "#427b58"
+green: &green "#79740e"
+orange: &orange "#af8700"
+magenta: &magenta "#8f3f71"
+blue: &blue "#076678"
+red: &red "#9d0006"
+
+k9s:
+  body:
+    fgColor: *foreground
+    bgColor: *background
+    logoColor: *blue
+  prompt:
+    fgColor: *foreground
+    bgColor: *background
+    suggestColor: *orange
+  info:
+    fgColor: *magenta
+    sectionColor: *foreground
+  help:
+    fgColor: *foreground
+    bgColor: *background
+    keyColor: *magenta
+    numKeyColor: *blue
+    sectionColor: *green
+  dialog:
+    fgColor: *foreground
+    bgColor: *background
+    buttonFgColor: *background
+    buttonBgColor: *magenta
+    buttonFocusFgColor: white
+    buttonFocusBgColor: *cyan
+    labelFgColor: *orange
+    fieldFgColor: *foreground
+  frame:
+    border:
+      fgColor: *current_line
+      focusColor: *foreground
+    menu:
+      fgColor: *foreground
+      keyColor: *magenta
+      numKeyColor: *magenta
+    crumbs:
+      fgColor: *background
+      bgColor: *foreground
+      activeColor: *blue
+    status:
+      newColor: *cyan
+      modifyColor: *blue
+      addColor: *green
+      errorColor: *red
+      highlightColor: *orange
+      killColor: *comment
+      completedColor: *comment
+    title:
+      fgColor: *foreground
+      bgColor: *background
+      highlightColor: *orange
+      counterColor: *blue
+      filterColor: *magenta
+  views:
+    charts:
+      bgColor: *background
+      defaultDialColors: [*blue, *red]
+      defaultChartColors: [*blue, *red]
+    table:
+      fgColor: *foreground
+      bgColor: *background
+      cursorFgColor: *background
+      cursorBgColor: *foreground
+      header:
+        fgColor: *foreground
+        bgColor: *background
+        sorterColor: *blue
+    xray:
+      fgColor: *foreground
+      bgColor: *background
+      cursorColor: *current_line
+      graphicColor: *blue
+      showIcons: false
+    yaml:
+      keyColor: *magenta
+      colonColor: *blue
+      valueColor: *foreground
+    logs:
+      fgColor: *foreground
+      bgColor: *background
+      indicator:
+        fgColor: *foreground
+        bgColor: *background
+        toggleOnColor: *magenta
+        toggleOffColor: *blue

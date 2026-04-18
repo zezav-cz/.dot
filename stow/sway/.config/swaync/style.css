@@ -1,0 +1,62 @@
+/* swaync — gruvbox, minimal */
+
+* {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: #ebdbb2;
+}
+
+.control-center {
+  background: #1d2021;
+  border: 1px solid #3c3836;
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.notification-row,
+.control-center-list,
+.floating-notifications {
+  background: transparent;
+}
+
+.notification {
+  background: #282828;
+  border-left: 2px solid #83a598;
+  border-radius: 3px;
+  padding: 6px 8px;
+  margin: 2px 0;
+}
+
+.notification .summary { color: #fabd2f; font-weight: bold; }
+.notification .body    { color: #d5c4a1; font-size: 11px; }
+.notification .time    { color: #928374; font-size: 10px; }
+
+.critical { border-left-color: #fb4934; }
+.critical .summary { color: #fb4934; }
+.low      { border-left-color: #665c54; }
+
+.widget-title > label  { color: #a89984; font-weight: bold; }
+.widget-title > button { background: transparent; border: none; color: #928374; padding: 2px 8px; }
+.widget-title > button:hover { color: #fe8019; }
+
+.widget-buttons-grid > flowbox > flowboxchild > button {
+  background: transparent;
+  border: 1px solid #3c3836;
+  border-radius: 3px;
+  padding: 3px 10px;
+  color: #d5c4a1;
+  min-height: 0;
+}
+.widget-buttons-grid > flowbox > flowboxchild > button:hover { background: #3c3836; color: #fabd2f; }
+
+/* DND widget */
+.widget-dnd { padding: 4px 6px; color: #d5c4a1; }
+.widget-dnd > switch          { background: #3c3836; border-radius: 999px; }
+.widget-dnd > switch:checked  { background: #98971a; }
+.widget-dnd > switch slider   { background: #ebdbb2; border-radius: 999px; }
+
+.notification .close-button { background: transparent; border: none; color: #7c6f64; padding: 0 4px; min-height: 0; min-width: 0; }
+.notification .close-button:hover { background: #cc241d; color: #ebdbb2; }
+
+.notification .notification-action { background: transparent; border: 1px solid #3c3836; border-radius: 3px; color: #d5c4a1; padding: 2px 8px; }
+.notification .notification-action:hover { background: #458588; color: #1d2021; }

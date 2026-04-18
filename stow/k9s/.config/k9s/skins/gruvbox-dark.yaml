@@ -1,0 +1,98 @@
+# ----------------------------------------
+# Gruvbox PITCH BLACK for k9s (Max Contrast)
+# ----------------------------------------
+foreground: &foreground "#ebdbb2" # Jasnější krémová
+background: &background "#000000" # Čistě černá
+current_line: &current_line "#3c3836"
+selection: &selection "#504945"
+comment: &comment "#928374"
+cyan: &cyan "#8ec07c"
+green: &green "#b8bb26"
+orange: &orange "#fabd2f"
+magenta: &magenta "#d3869b"
+blue: &blue "#83a598"
+red: &red "#fb4934"
+
+k9s:
+  body:
+    fgColor: *foreground
+    bgColor: *background
+    logoColor: *blue
+  prompt:
+    fgColor: *foreground
+    bgColor: *background
+    suggestColor: *orange
+  info:
+    fgColor: *magenta
+    sectionColor: *foreground
+  help:
+    fgColor: *foreground
+    bgColor: *background
+    keyColor: *magenta
+    numKeyColor: *blue
+    sectionColor: *green
+  dialog:
+    fgColor: *foreground
+    bgColor: *background
+    buttonFgColor: *foreground
+    buttonBgColor: *magenta
+    buttonFocusFgColor: white
+    buttonFocusBgColor: *cyan
+    labelFgColor: *orange
+    fieldFgColor: *foreground
+  frame:
+    border:
+      fgColor: *selection
+      focusColor: *foreground # Změněno pro vyšší viditelnost okna
+    menu:
+      fgColor: *foreground
+      keyColor: *magenta
+      numKeyColor: *magenta
+    crumbs:
+      fgColor: *foreground
+      bgColor: *selection
+      activeColor: *blue
+    status:
+      newColor: *cyan
+      modifyColor: *blue
+      addColor: *green
+      errorColor: *red
+      highlightColor: *orange
+      killColor: *comment
+      completedColor: *comment
+    title:
+      fgColor: *foreground
+      bgColor: *background
+      highlightColor: *orange
+      counterColor: *blue
+      filterColor: *magenta
+  views:
+    charts:
+      bgColor: *background
+      defaultDialColors: [*blue, *red]
+      defaultChartColors: [*blue, *red]
+    table:
+      fgColor: *foreground
+      bgColor: *background
+      cursorFgColor: "#000000"
+      cursorBgColor: *foreground # Výrazný kurzor
+      header:
+        fgColor: *orange # Oranžové hlavičky pro přehled
+        bgColor: *background
+        sorterColor: *cyan
+    xray:
+      fgColor: *foreground
+      bgColor: *background
+      cursorColor: *foreground
+      graphicColor: *blue
+      showIcons: false
+    yaml:
+      keyColor: *magenta
+      colonColor: *blue
+      valueColor: *foreground
+    logs:
+      fgColor: *foreground
+      bgColor: *background
+      indicator:
+        fgColor: *foreground
+        bgColor: *background

@@ -14,25 +14,16 @@ This repository contains my system configuration files and an automated setup sc
 
 ## Usage
 
-Clone this repository and run the installation script:
+Clone this repository and run the installer:
 
 ```bash
 git clone <repository-url> ~/.dot
 cd ~/.dot
-./install.sh
+python3 install.py
 ```
+
+See `CLAUDE.md` for flags (`--dry-run`, `--only`, `--skip`, `--list`) and `doc/` for architecture notes.
 
 ## Structure
 
 Configuration files are organized by application/category and managed with GNU Stow for easy deployment and maintenance.
-
-## TODO
-- [ ] vn script
-- [ ] slack
-- [ ] discord
-- [ ] telegram
-- [ ] FW
-- [ ] Other repository cloning
-    - [ ] secrets
-- [ ] Use move ENV
-    - [ ] vault path

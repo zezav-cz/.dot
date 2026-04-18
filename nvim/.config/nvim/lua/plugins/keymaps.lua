@@ -1,2 +1,0 @@
--- Plugin keybindings are now defined in their respective plugin files using lazy.nvim's keys feature
--- See lua/plugins/*.lua files for plugin-specific keymaps

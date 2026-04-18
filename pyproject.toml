@@ -1,0 +1,55 @@
+[project]
+name = "dotfiles-installer"
+version = "0.1.0"
+description = "Bootstrap installer for personal dotfiles"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ruff>=0.15.11",
+  "mypy>=1.13.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "UP",  # pyupgrade
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.hatch.build.targets.wheel]
+packages = ["installer"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["install.py", "installer"]
+
+# TODO: drop these overrides once `install.py` and `installer/` are fully
+# type-annotated. Workstream A is annotating installer code in parallel; until
+# then we tolerate the existing untyped modules so `mise run check` stays
+# green. Keep strict mode globally so newly-added modules get checked.
+[[tool.mypy.overrides]]
+module = "installer.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "install"
+ignore_errors = true

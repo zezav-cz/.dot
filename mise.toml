@@ -1,3 +1,46 @@
 [tools]
-lefthook = "latest"
-"npm:editorconfig-checker" = "latest"
+lefthook = "2.1.6"
+"npm:editorconfig-checker" = "6.1.1"
+python = "3.12.10"
+uv = "0.11.7"
+ruff = "0.15.11"
+
+[tasks.lint]
+run = "ruff check install.py installer/"
+description = "Lint Python with ruff"
+
+[tasks."lint:fix"]
+run = "ruff check --fix install.py installer/"
+description = "Lint Python with ruff and auto-fix safe issues"
+
+[tasks.format]
+run = "ruff format install.py installer/"
+description = "Format Python with ruff"
+
+[tasks."format:check"]
+run = "ruff format --check install.py installer/"
+description = "Check Python formatting without modifying files"
+
+[tasks."editorconfig"]
+run = "editorconfig-checker -exclude '(^|/)(\\.venv|\\.mypy_cache|\\.ruff_cache|\\.git|fonts|__pycache__)(/|$)|\\.spl$|\\.gitconfig$|stow/nvim/.config/nvim/lua/plugins/(dark_notify|lsp_keymaps|lualine|mason_lspconfig)\\.lua$|installer/steps/s05_fonts\\.py$|^stow/nwg-displays/\\.config/nwg-displays/(config|profiles/)' ."
+description = "Verify files conform to .editorconfig"
+
+[tasks."type-check"]
+run = "uv run mypy install.py installer/"
+description = "Type-check Python with mypy"
+
+[tasks.check]
+depends = ["lint", "format:check", "editorconfig", "type-check"]
+description = "Run all checks (lint + format + editorconfig + type-check)"
+
+[tasks.sync]
+run = "uv sync"
+description = "Sync dev environment (installs ruff, mypy, and other dev deps)"
+
+[tasks."install-hooks"]
+run = "lefthook install"
+description = "Install git hooks via lefthook"
+
+[tasks.setup]
+depends = ["sync", "install-hooks"]
+description = "Bootstrap dev environment: sync deps and install git hooks"

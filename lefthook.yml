@@ -4,3 +4,14 @@ pre-commit:
     editorconfig:
       run: editorconfig-checker {staged_files}
       glob: "*"
+    ruff-lint:
+      run: ruff check {staged_files}
+      glob: "*.py"
+    ruff-format:
+      run: ruff format --check {staged_files}
+      glob: "*.py"
+
+pre-push:
+  commands:
+    check:
+      run: mise run check

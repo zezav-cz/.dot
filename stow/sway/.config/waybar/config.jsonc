@@ -1,0 +1,144 @@
+{
+  "layer": "top", // Waybar at top layer
+  "position": "top", // Waybar position (top|bottom|left|right)
+  "modules-left": [
+    "sway/workspaces",
+    "sway/mode"
+  ],
+  "modules-right": [
+    "custom/colorscheme",
+    "custom/gammastep",
+    "pulseaudio", // TODO
+    "custom/notification",
+    "idle_inhibitor",
+    "network",
+    "bluetooth",
+    "sway/language",
+    "battery",
+    "tray",
+    "clock",
+    "custom/power"
+  ],
+  "custom/colorscheme": {
+    "format": "{}",
+    "interval": 5,
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/colorscheme.sh",
+    "on-click": "~/.config/waybar/scripts/colorscheme.sh toggle"
+  },
+  "custom/gammastep": {
+    "format": " {}",
+    "interval": 5,
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/gammastep.sh",
+    "on-click": "~/.config/waybar/scripts/gammastep.sh toggle"
+  },
+  "pulseaudio": {
+      // "scroll-step": 1, // %, can be a float
+      "format": "{volume}% {icon} {format_source}",
+      "format-bluetooth": "{volume}% {icon}  {format_source}",
+      "format-bluetooth-muted": " {icon}  {format_source}",
+      "format-muted": " {format_source}",
+      "format-source": "{volume}% ",
+      "format-source-muted": "",
+      "format-icons": {
+          "headphone": "",
+          "hands-free": "",
+          "headset": "",
+          "phone": "",
+          "portable": "",
+          "car": "",
+          "default": ["", "", ""]
+      },
+      "on-click": "pavucontrol"
+  },
+  "sway/workspaces": {
+    "tooltip": false,
+    "all-outputs": true
+  },
+  // sudo dnf install nwg-bar
+  "custom/power": {
+    "format": " {}",
+    "on-click": "nwg-bar -x"
+  },
+  "bluetooth": {
+    "format": " {status}",
+    "format-connected": " {device_alias}",
+    "format-connected-battery": " {device_alias} {device_battery_percentage}%",
+    "format-no-controller": " N/A",
+    "format-icons": {
+      "enabled": "",
+      "disabled": ""
+    },
+    "interval": 10,
+    "tooltip": true,
+    "on-click": "foot -e bluetoothctl"
+  },
+  // --- Custom DND ---
+  "custom/notification": {
+    "tooltip": true,
+    "format": "{icon}",
+    "format-icons": {
+      "notification": "󱅫",
+      "none": "󰂜",
+      "dnd-notification": "󰂠",
+      "dnd-none": "󰪓",
+      "inhibited-notification": "󰂛",
+      "inhibited-none": "󰪑",
+      "dnd-inhibited-notification": "󰂛",
+      "dnd-inhibited-none": "󰪑"
+    },
+    "return-type": "json",
+    "exec-if": "which swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
+  },
+  // --- Idle Inhibitor ---
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+      "activated": "",
+      "deactivated": "󰾪"
+    },
+    "tooltip-format-activated": "Idle: Activated",
+    "tooltip-format-deactivated": "Idle: Deactivated"
+  },
+  // --- Network ---
+  "network": {
+    "interval": 5,
+    "format-wifi": " {essid} ({signalStrength}%)",
+    "format-ethernet": "󰈀 {ifname}",
+    "format-disconnected": " Disconnected",
+    "tooltip-format": "{ifname}: {ipaddr}"
+  },
+  "sway/language": {
+    "format": " {}", // Adds Keyboard icon
+    "tooltip": false
+  },
+  // --- Battery ---
+  "battery": {
+    "interval": 10,
+    "states": {
+      "warning": 30,
+      "critical": 15
+    },
+    // Unified Format: Static Icon + Percentage
+    "format": " {capacity}%",
+    "format-charging": " {capacity}% {power:0.0f}W", // Only changes to Bolt when charging
+    "format-plugged": " {capacity}%",
+    "tooltip": true
+  },
+  "tray": {
+    "icon-size": 11,
+    "spacing": 10,
+    "tooltip": false
+  },
+  // --- Clocks ---
+  "clock": {
+    "interval": 10,
+    "format": "󰃶 {:%e %b %Y - %H:%M}",
+    "tooltip": false
+  }
+}
