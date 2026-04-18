@@ -1,6 +1,43 @@
-# Display the background image
 image=~/.config/swaylock/fsociaty.jpg
 scaling=fill
-color=1d2021
 show-failed-attempts
 show-keyboard-layout
+
+# gruvbox palette
+color=1d2021
+
+font=JetBrains Mono
+
+inside-color=28282888
+inside-clear-color=689d6a88
+inside-caps-lock-color=d6591088
+inside-ver-color=45858888
+inside-wrong-color=cc241d88
+
+ring-color=3c3836
+ring-clear-color=b8bb26
+ring-caps-lock-color=fe8019
+ring-ver-color=83a598
+ring-wrong-color=fb4934
+
+line-color=00000000
+line-clear-color=00000000
+line-caps-lock-color=00000000
+line-ver-color=00000000
+line-wrong-color=00000000
+
+text-color=ebdbb2
+text-clear-color=1d2021
+text-caps-lock-color=1d2021
+text-ver-color=1d2021
+text-wrong-color=ebdbb2
+
+key-hl-color=fabd2f
+bs-hl-color=fb4934
+caps-lock-key-hl-color=fabd2f
+caps-lock-bs-hl-color=fb4934
+
+separator-color=00000000
+
+indicator-radius=110
+indicator-thickness=6
