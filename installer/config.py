@@ -218,6 +218,7 @@ APPS_OBSIDIAN = AppInstall(
 ZSH_CUSTOM = Path(f"{HOME}/.oh-my-zsh/custom")
 ZSH_PLUGINS = {
     "zsh-autosuggestions": "https://github.com/zsh-users/zsh-autosuggestions",
+    "zsh-syntax-highlighting": "https://github.com/zsh-users/zsh-syntax-highlighting",
 }
 
 # ──────────────────────────────────────────────

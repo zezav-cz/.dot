@@ -1,0 +1,11 @@
+[Unit]
+Description=Trigger remotely-save sync in Obsidian (vnotes)
+ConditionPathExists=/run/user/%U/.obsidian-cli.sock
+
+[Service]
+Type=oneshot
+TimeoutStartSec=120
+ExecStart=/usr/local/bin/obsidian command id=remotely-save:start-sync vault=vnotes
+
+[Install]
+WantedBy=default.target

@@ -6,12 +6,18 @@ set -euo pipefail
 VAULT_ROOT="${HOME}/vnotes"
 
 DIR_INBOX="${VAULT_ROOT}/00_inbox"
-DIR_ZETTEL="${VAULT_ROOT}/10_zettelkasten"
-DIR_PROJECTS="${VAULT_ROOT}/30_projects"
+DIR_DAILY="${VAULT_ROOT}/10_daily"
+DIR_PERMANENT="${VAULT_ROOT}/20_permanent"
+DIR_LITERATURE="${VAULT_ROOT}/30_literature"
+DIR_HUBS="${VAULT_ROOT}/40_hubs"
+DIR_PROJECTS="${VAULT_ROOT}/50_projects"
 DIR_ATTACHMENTS="${VAULT_ROOT}/90_attachments"
+DIR_TEMPLATES="${VAULT_ROOT}/99_templates"
+
+# Back-compat alias: anything that still references DIR_ZETTEL expects "all permanent-ish notes"
+DIR_ZETTEL="$DIR_PERMANENT"
 
 # --- VISUALS & COLORS ---
-# We use $'\e...' to ensure Bash interprets the escape codes correctly
 C_RESET=$'\e[0m'
 C_RED=$'\e[1;31m'
 C_GREEN=$'\e[1;32m'
@@ -20,7 +26,6 @@ C_BLUE=$'\e[1;34m'
 C_CYAN=$'\e[1;36m'
 C_GRAY=$'\e[0;90m'
 
-# Bitmap Emojis / Icons
 IC_OK="✅"
 IC_ERR="❌"
 IC_WARN="⚠️ "
@@ -31,84 +36,87 @@ IC_FOLDER="📂"
 IC_CLIP="📋"
 IC_EDIT="✏️ "
 IC_INST="💿"
+IC_DICE="🎲"
+IC_BROOM="🧹"
+IC_WRENCH="🔧"
+IC_ARROW="➡️ "
 
 # --- SYSTEM HELPERS ---
 
-# Logging functions
-log_info() {
-  printf "${C_BLUE}${IC_INFO} %s${C_RESET}\n" "$1"
-}
+log_info()    { printf "${C_BLUE}${IC_INFO} %s${C_RESET}\n" "$1"; }
+log_success() { printf "${C_GREEN}${IC_OK} %s${C_RESET}\n" "$1"; }
+log_warn()    { printf "${C_YELLOW}${IC_WARN} %s${C_RESET}\n" "$1"; }
+log_err()     { printf "${C_RED}${IC_ERR} %s${C_RESET}\n" "$1" >&2; }
 
-log_success() {
-  printf "${C_GREEN}${IC_OK} %s${C_RESET}\n" "$1"
-}
-
-log_warn() {
-  printf "${C_YELLOW}${IC_WARN} %s${C_RESET}\n" "$1"
-}
-
-log_err() {
-  printf "${C_RED}${IC_ERR} %s${C_RESET}\n" "$1" >&2
-}
-
-# Print error and exit
 die() {
   log_err "$1"
   exit 1
 }
 
-# Ensure directories exist
 ensure_dirs() {
-  mkdir -p "$DIR_INBOX" "$DIR_ZETTEL" "$DIR_PROJECTS" "$DIR_ATTACHMENTS"
+  local dirs=("$DIR_INBOX" "$DIR_DAILY" "$DIR_PERMANENT" "$DIR_LITERATURE" \
+              "$DIR_HUBS" "$DIR_PROJECTS" "$DIR_ATTACHMENTS" "$DIR_TEMPLATES")
+  mkdir -p "${dirs[@]}"
+  # Sentinel file so Syncthing / git don't let empty zettel folders vanish.
+  for d in "${dirs[@]}"; do
+    [[ -e "$d/.s3keep" ]] || touch "$d/.s3keep"
+  done
 }
 
-# Standardize filename
-# Args: $1 = string to standardize, $2 = "true" to allow slashes (optional)
+# Standardize filename: lowercase, ASCII, underscore-separated
+# Args: $1 = string, $2 = "true" to allow slashes
 standardize_filename() {
   local input="$1"
-  local allow_slashes="$2"
+  local allow_slashes="${2:-false}"
 
-  # Convert to lowercase and normalize (requires iconv for ascii conversion)
-  local title=$(echo "$input" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT)
-
-  # Replace spaces with underscores
+  local title=$(echo "$input" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT 2>/dev/null || echo "$input")
   title="${title// /_}"
 
-  # Remove characters based on allow_slashes flag
   if [[ "$allow_slashes" == "true" ]]; then
-    # Allow alphanumeric, underscore, hyphen, slash
-    title=$(echo "$title" | sed 's/[^a-z0-9_\-\/]//g')
-    # Deduplicate slashes
-    title=$(echo "$title" | sed -E 's/\/+/\//g')
-    # Trim slashes
-    title=$(echo "$title" | sed -E 's/^\///; s/\/$//')
+    title=$(echo "$title" | sed 's/[^a-z0-9_\-\/]//g' | sed -E 's/\/+/\//g; s/^\///; s/\/$//')
   else
-    # Allow alphanumeric, underscore, hyphen
     title=$(echo "$title" | sed 's/[^a-z0-9_\-]//g')
   fi
 
-  # Deduplicate underscores and hyphens
-  title=$(echo "$title" | sed -E 's/_+/_/g; s/-+/-/g')
-
-  # Trim leading/trailing underscores and hyphens
-  title=$(echo "$title" | sed -E 's/^[_ -]+//; s/[_ -]+$//')
-
+  title=$(echo "$title" | sed -E 's/_+/_/g; s/-+/-/g; s/^[_ -]+//; s/[_ -]+$//')
   echo "$title"
+}
+
+# Read a YAML frontmatter field value from a file.
+# Args: $1 = file, $2 = field name
+fm_get() {
+  local file="$1"
+  local field="$2"
+  awk -v f="$field" '
+    /^---[[:space:]]*$/ { n++; next }
+    n==1 && $0 ~ "^"f":[[:space:]]*" {
+      val = $0
+      sub("^"f":[[:space:]]*", "", val)
+      sub("[[:space:]]*#.*$", "", val)
+      sub("[[:space:]]+$", "", val)
+      print val
+      exit
+    }
+  ' "$file"
+}
+
+# Expand {{date}} and {{time}} in a template file to stdout
+render_template() {
+  local tpl="$1"
+  local d=$(date +%Y-%m-%d)
+  local t=$(date +%H:%M)
+  sed -e "s/{{date}}/${d}/g" -e "s/{{time}}/${t}/g" "$tpl"
 }
 
 # --- ACTIONS ---
 
 action_search() {
-  # Open nvim in the vault root
   nvim "$VAULT_ROOT"
 }
 
 action_create() {
   local title="$1"
-
-  if [[ -z "$title" ]]; then
-    die "Title is required\n    Usage: vn create <title>"
-  fi
+  [[ -z "$title" ]] && die "Title is required. Usage: vn create <title>"
 
   local date_prefix=$(date +%Y-%m-%d)
   local timestamp=$(date +%H%M)
@@ -120,7 +128,7 @@ action_create() {
 }
 
 action_screenshot() {
-  local name="$1"
+  local name="${1:-}"
   local date_prefix=$(date +%Y-%m-%d)
   local timestamp=$(date +%H%M%S)
   local filename=""
@@ -135,13 +143,11 @@ action_screenshot() {
   local filepath="${DIR_ATTACHMENTS}/${filename}"
 
   if ! command -v xclip &> /dev/null; then
-    log_err "xclip not found. Install with: sudo apt install xclip"
+    log_err "xclip not found. Install with: sudo dnf install xclip"
     die "Cannot proceed without xclip."
   fi
 
-  # Save clipboard content to file
   if xclip -selection clipboard -t image/png -o > "$filepath" 2>/dev/null; then
-    # Check if file has size (xclip creates empty file if clipboard is empty)
     if [[ ! -s "$filepath" ]]; then
       rm "$filepath"
       die "No image in clipboard or xclip failed."
@@ -154,15 +160,273 @@ action_screenshot() {
   fi
 }
 
+action_daily() {
+  local date_str=$(date +%Y-%m-%d)
+  local filepath="${DIR_DAILY}/${date_str}.md"
+  local tpl="${DIR_TEMPLATES}/tpl_daily.md"
+
+  mkdir -p "$DIR_DAILY"
+
+  if [[ ! -f "$filepath" ]]; then
+    if [[ -f "$tpl" ]]; then
+      render_template "$tpl" > "$filepath"
+      log_success "Created $(basename "$filepath") from template."
+    else
+      touch "$filepath"
+      log_warn "Template not found; created empty daily note."
+    fi
+  fi
+
+  nvim "$filepath"
+}
+
+action_inbox() {
+  local files=()
+  while IFS= read -r -d '' f; do
+    files+=("$f")
+  done < <(find "$DIR_INBOX" -maxdepth 1 -type f -name "*.md" -print0 | sort -z)
+
+  if [[ ${#files[@]} -eq 0 ]]; then
+    log_info "Inbox is empty."
+    return 0
+  fi
+
+  printf "${C_BLUE}${IC_FOLDER} Inbox (%d note(s)):${C_RESET}\n" "${#files[@]}"
+  for f in "${files[@]}"; do
+    local base=$(basename "$f")
+    local size=$(stat -c '%s' "$f")
+    local first=$(awk '
+      BEGIN { infm=0 }
+      /^---[[:space:]]*$/ { infm = !infm; next }
+      infm { next }
+      /^#+[[:space:]]/ { sub(/^#+[[:space:]]*/,""); print; exit }
+      NF { print; exit }
+    ' "$f")
+    printf "  ${IC_FILE} ${C_CYAN}%s${C_RESET} ${C_GRAY}(%sB)${C_RESET}  %s\n" \
+      "$base" "$size" "${first:-<empty>}"
+  done
+}
+
+action_clean() {
+  local apply="false"
+  [[ "${1:-}" == "--apply" ]] && apply="true"
+
+  local empties=()
+  while IFS= read -r -d '' f; do
+    empties+=("$f")
+  done < <(find "$DIR_INBOX" -maxdepth 1 -type f -name "*.md" -size 0 -print0)
+
+  if [[ ${#empties[@]} -eq 0 ]]; then
+    log_info "No empty notes in 00_inbox."
+    return 0
+  fi
+
+  printf "${C_YELLOW}Empty notes (%d):${C_RESET}\n" "${#empties[@]}"
+  for f in "${empties[@]}"; do
+    printf "  ${IC_FILE} %s\n" "$(basename "$f")"
+  done
+
+  if [[ "$apply" == "true" ]]; then
+    for f in "${empties[@]}"; do rm "$f"; done
+    log_success "Deleted ${#empties[@]} empty note(s)."
+  else
+    log_info "Dry-run. Pass --apply to delete."
+  fi
+}
+
+action_grep() {
+  [[ $# -eq 0 ]] && die "Usage: vn grep <text>"
+  if ! command -v rg &> /dev/null; then
+    die "ripgrep (rg) is required. Install with: sudo dnf install ripgrep"
+  fi
+  rg --type md -n --color=always "$@" "$VAULT_ROOT"
+}
+
+action_random() {
+  local files=()
+  while IFS= read -r -d '' f; do
+    files+=("$f")
+  done < <(find "$DIR_PERMANENT" "$DIR_LITERATURE" "$DIR_HUBS" \
+            -type f -name "*.md" -print0 2>/dev/null)
+
+  if [[ ${#files[@]} -eq 0 ]]; then
+    log_warn "No zettel notes yet (20_permanent/, 30_literature/, 40_hubs/). Run 'vn promote <inbox-file>' first."
+    return 0
+  fi
+
+  local pick="${files[RANDOM % ${#files[@]}]}"
+  log_info "${IC_DICE} ${pick#$VAULT_ROOT/}"
+  nvim "$pick"
+}
+
+action_orphans() {
+  if ! command -v rg &> /dev/null; then
+    die "ripgrep (rg) is required."
+  fi
+
+  declare -A linked=()
+  while IFS= read -r target; do
+    [[ -n "$target" ]] && linked["$target"]=1
+  done < <(rg --type md -oN "\[\[[^]]+\]\]" "$VAULT_ROOT" 2>/dev/null \
+            | sed -E 's/^\[\[//; s/\]\]$//; s/[|#].*//')
+
+  local orphans=()
+  while IFS= read -r -d '' f; do
+    local stem=$(basename "$f" .md)
+    local has_in="${linked[$stem]:-0}"
+    local has_out=0
+    grep -qE '\[\[[^]]+\]\]' "$f" 2>/dev/null && has_out=1
+    if [[ "$has_in" == "0" && "$has_out" == "0" ]]; then
+      orphans+=("$f")
+    fi
+  done < <(find "$DIR_PERMANENT" "$DIR_LITERATURE" "$DIR_HUBS" \
+            -type f -name "*.md" -print0 2>/dev/null)
+
+  if [[ ${#orphans[@]} -eq 0 ]]; then
+    log_success "No orphans in zettel folders."
+    return 0
+  fi
+
+  printf "${C_YELLOW}Orphans (%d) — unlinked zettel notes:${C_RESET}\n" "${#orphans[@]}"
+  for f in "${orphans[@]}"; do
+    printf "  ${IC_FILE} %s\n" "${f#$VAULT_ROOT/}"
+  done
+}
+
+action_promote() {
+  local src="${1:-}"
+  [[ -z "$src" ]] && die "Usage: vn promote <file>"
+
+  if [[ ! -f "$src" ]]; then
+    if [[ -f "$VAULT_ROOT/$src" ]]; then
+      src="$VAULT_ROOT/$src"
+    elif [[ -f "$DIR_INBOX/$src" ]]; then
+      src="$DIR_INBOX/$src"
+    else
+      die "File not found: $src"
+    fi
+  fi
+  src=$(readlink -f "$src")
+
+  local base=$(basename "$src")
+  local stem="${base%.md}"
+  local new_stem
+  if [[ "$stem" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}(_[0-9]{4})?_(.+)$ ]]; then
+    new_stem="${BASH_REMATCH[2]}"
+  else
+    new_stem="$stem"
+  fi
+  local new_base="${new_stem}.md"
+
+  local type
+  type=$(fm_get "$src" "type" 2>/dev/null || true)
+
+  # Route by frontmatter type. Default = permanent.
+  local dest_dir new_type
+  case "$type" in
+    literature)         dest_dir="$DIR_LITERATURE"; new_type="$type" ;;
+    hub|moc)            dest_dir="$DIR_HUBS";       new_type="hub" ;;
+    permanent)          dest_dir="$DIR_PERMANENT";  new_type="$type" ;;
+    fleeting|""|*)      dest_dir="$DIR_PERMANENT";  new_type="permanent" ;;
+  esac
+  mkdir -p "$dest_dir"
+
+  local dest="$dest_dir/$new_base"
+  local n=1
+  while [[ -e "$dest" ]]; do
+    dest="$dest_dir/${new_stem}_${n}.md"
+    n=$((n+1))
+  done
+
+  mv "$src" "$dest"
+
+  # Rewrite type: line if the inferred target differs from the source
+  if [[ "$type" != "$new_type" ]]; then
+    if grep -qE '^type:' "$dest"; then
+      sed -i -E "0,/^type:.*/{s/^type:.*/type: ${new_type}/}" "$dest"
+    fi
+  fi
+
+  log_success "${IC_ARROW}Promoted: ${base} → ${dest#$VAULT_ROOT/} [${new_type}]"
+}
+
+action_fix() {
+  local apply="false"
+  [[ "${1:-}" == "--apply" ]] && apply="true"
+
+  # Only touches the zettelkasten flow (inbox + zettel folders).
+  # 50_projects/ keeps its intentional semantic names (notes.md, todo.md, etc.).
+  # 10_daily/ is skipped (YYYY-MM-DD.md format by Obsidian's daily-notes plugin).
+  local changes=0
+  local dirs=("$DIR_INBOX" "$DIR_PERMANENT" "$DIR_LITERATURE" "$DIR_HUBS")
+  for d in "${dirs[@]}"; do
+    [[ -d "$d" ]] || continue
+    while IFS= read -r -d '' f; do
+      local base=$(basename "$f")
+      # Skip daily notes, sync conflicts, hidden, README
+      [[ "$base" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$ ]] && continue
+      [[ "$base" == *.sync-conflict-* ]] && continue
+      [[ "$base" =~ ^\. ]] && continue
+      [[ "$base" == "README.md" ]] && continue
+
+      local dir=$(dirname "$f")
+      local stem="${base%.md}"
+
+      local prefix="" title=""
+      if [[ "$stem" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4})_(.+)$ ]]; then
+        prefix="${BASH_REMATCH[1]}"
+        title="${BASH_REMATCH[2]}"
+      elif [[ "$stem" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2})_(.+)$ ]]; then
+        prefix="${BASH_REMATCH[1]}_$(date -r "$f" +%H%M)"
+        title="${BASH_REMATCH[2]}"
+      else
+        prefix="$(date -r "$f" +%Y-%m-%d_%H%M)"
+        title="$stem"
+      fi
+
+      local clean_title
+      clean_title=$(standardize_filename "$title" "false")
+      [[ -z "$clean_title" ]] && clean_title="untitled"
+      local new_base="${prefix}_${clean_title}.md"
+
+      if [[ "$new_base" == "$base" ]]; then
+        continue
+      fi
+
+      local dest="$dir/$new_base"
+      local n=1
+      while [[ -e "$dest" ]]; do
+        dest="$dir/${prefix}_${clean_title}_${n}.md"
+        n=$((n+1))
+      done
+
+      printf "  %s\n    ${IC_ARROW}%s\n" "${f#$VAULT_ROOT/}" "${dest#$VAULT_ROOT/}"
+      changes=$((changes+1))
+      if [[ "$apply" == "true" ]]; then
+        mv "$f" "$dest"
+      fi
+    done < <(find "$d" -type f -name "*.md" -print0)
+  done
+
+  if [[ $changes -eq 0 ]]; then
+    log_success "All filenames are already standardized."
+    return 0
+  fi
+
+  if [[ "$apply" == "true" ]]; then
+    log_success "Renamed $changes file(s)."
+  else
+    log_info "Dry-run: $changes rename(s) proposed. Pass --apply to execute."
+  fi
+}
+
 action_install() {
   local script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
   local bin_dir="${HOME}/.local/bin"
   local symlink_path="${bin_dir}/vn"
 
-  # Ensure ~/.local/bin exists
   mkdir -p "$bin_dir"
 
-  # Check if symlink already exists
   if [[ -L "$symlink_path" ]]; then
     local current_target=$(readlink "$symlink_path")
     if [[ "$current_target" == "$script_path" ]]; then
@@ -183,12 +447,9 @@ action_install() {
     die "File exists but is not a symlink: $symlink_path"
   fi
 
-  # Create symlink
   if ln -s "$script_path" "$symlink_path"; then
     log_success "Installed: $symlink_path -> $script_path"
     printf "\n${IC_INFO} Make sure ${C_BLUE}${bin_dir}${C_RESET} is in your PATH.\n"
-    echo "Add this to your ~/.bashrc or ~/.zshrc if needed:"
-    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
   else
     die "Failed to create symlink"
   fi
@@ -196,22 +457,37 @@ action_install() {
 
 show_help() {
   cat << EOF
-${C_BLUE}VNOTES${C_RESET} - Simple Note Management
+${C_BLUE}VNOTES${C_RESET} — Simple Zettelkasten workflow
 
 ${C_YELLOW}USAGE:${C_RESET}
   vn <command> [<args>]
 
-${C_YELLOW}COMMANDS:${C_RESET}
-  ${C_GREEN}search, s${C_RESET}        ${IC_SEARCH} Open vault in Neovim
-  ${C_GREEN}create, c${C_RESET}        ${IC_EDIT} Create new inbox note
-  ${C_GREEN}screenshot, i${C_RESET}    ${IC_CLIP} Paste screenshot from clipboard
-  ${C_GREEN}install${C_RESET}          ${IC_INST} Install to ~/.local/bin/vn
+${C_YELLOW}CAPTURE:${C_RESET}
+  ${C_GREEN}create, c${C_RESET} <title>      ${IC_EDIT} New inbox note (fleeting)
+  ${C_GREEN}daily,  d${C_RESET}              ${IC_FILE} Open/create today's daily note
+  ${C_GREEN}screenshot, i${C_RESET} [name]   ${IC_CLIP} Paste screenshot from clipboard
+
+${C_YELLOW}ORGANIZE:${C_RESET}
+  ${C_GREEN}inbox${C_RESET}                  ${IC_FOLDER} List unprocessed inbox notes
+  ${C_GREEN}promote, p${C_RESET} <file>      ${IC_ARROW}Move inbox note → zettelkasten
+  ${C_GREEN}fix${C_RESET} [--apply]          ${IC_WRENCH}Normalize filenames (dry-run default)
+  ${C_GREEN}clean${C_RESET} [--apply]        ${IC_BROOM}Delete empty inbox notes (dry-run default)
+
+${C_YELLOW}REVIEW:${C_RESET}
+  ${C_GREEN}search, s${C_RESET}              ${IC_SEARCH} Open vault in nvim
+  ${C_GREEN}grep${C_RESET} <text>            ${IC_SEARCH} Content search via ripgrep
+  ${C_GREEN}random, r${C_RESET}              ${IC_DICE} Open a random zettel note
+  ${C_GREEN}orphans${C_RESET}                ${IC_FILE} List unlinked zettel notes
+
+${C_YELLOW}SETUP:${C_RESET}
+  ${C_GREEN}install${C_RESET}                ${IC_INST} Install to ~/.local/bin/vn
 
 ${C_YELLOW}EXAMPLES:${C_RESET}
-  vn search
-  vn create "My Note Title"
-  vn screenshot myimage
-  vn install
+  vn create "HMAC signing"
+  vn daily
+  vn promote 00_inbox/2026-04-19_1530_hmac_signing.md
+  vn fix --apply
+  vn grep kubernetes
 EOF
 }
 
@@ -226,24 +502,22 @@ main() {
   fi
 
   local cmd="$1"
-  shift # Remove command from argument list
+  shift
 
   case "$cmd" in
-    search|s|open)
-      action_search
-      ;;
-    create|c|new|inbox)
-      action_create "$*"
-      ;;
-    screenshot|i|img|paste)
-      action_screenshot "$1"
-      ;;
-    install)
-      action_install
-      ;;
-    --help|-h)
-      show_help
-      ;;
+    search|s|open)        action_search ;;
+    create|c|new)         action_create "$*" ;;
+    screenshot|i|img|paste) action_screenshot "${1:-}" ;;
+    daily|d)              action_daily ;;
+    inbox)                action_inbox ;;
+    promote|p)            action_promote "${1:-}" ;;
+    fix)                  action_fix "${1:-}" ;;
+    clean)                action_clean "${1:-}" ;;
+    grep|g)               action_grep "$@" ;;
+    random|r|stumble)     action_random ;;
+    orphans)              action_orphans ;;
+    install)              action_install ;;
+    --help|-h|help)       show_help ;;
     *)
       log_err "Unknown command: $cmd"
       show_help

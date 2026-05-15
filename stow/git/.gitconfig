@@ -7,13 +7,15 @@
 ; [includeIf "gitdir:~/dev/fit/"]
 ;    path = ~/.config/git/fit.gitconfig
 [rerere]
-	enabled = true
+  enabled = true
 [filter "lfs"]
-	clean = git-lfs clean -- %f
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
-	required = true
+  clean = git-lfs clean -- %f
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
+  required = true
 [alias]
-	pushf = push --force-with-lease
+  pushf = push --force-with-lease
 [push]
-	useForceIfIncludes = true
+  useForceIfIncludes = true
+[url "git@github.com:zezav-cz/"]
+  insteadOf = https://github.com/zezav-cz/

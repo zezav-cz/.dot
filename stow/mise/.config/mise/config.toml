@@ -1,3 +1,6 @@
+[env]
+GOPRIVATE = "github.com/zezav-cz/*"
+
 [tools]
 asciidoctorj = "latest"
 cilium-cli = "0.18"
@@ -25,6 +28,8 @@ python = "latest"
 task = "3"
 usage = "latest"
 yq = "latest"
+go = "1.25"
+"go:github.com/zezav-cz/vn/cmd/vn" = { version = "v0.0.0-20260419170146-42cfc60b41b7", postinstall = "vn completion zsh > ~/.zfunc/_vn" }
 
 [settings]
 experimental = true

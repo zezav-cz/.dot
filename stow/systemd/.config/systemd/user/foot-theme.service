@@ -1,0 +1,13 @@
+[Unit]
+Description=Foot terminal theme watcher (follows gsettings color-scheme)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.config/foot/foot-theme-watcher.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

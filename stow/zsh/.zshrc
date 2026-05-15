@@ -20,8 +20,15 @@ plugins=(
     fluxcd
     helm
     kubectl
+    zsh-syntax-highlighting
+    copybuffer   # ctrl-o
+    copyfile
+    kubectl
     )
 
+fpath=(~/.zfunc $fpath)
+autoload -Uz compinit && compinit
+mkdir -p ~/.zfunc
 
 source $ZSH/oh-my-zsh.sh
 export TERM=xterm-256color
@@ -34,6 +41,7 @@ alias x='xdg-open '
 alias g='git '
 alias t='tmux '
 alias k='kubectl '
+alias copy='wl-copy'
 
 eval "$(/usr/bin/mise activate zsh)"
 export PATH="${HOME}/.krew/bin:$PATH"
@@ -44,3 +52,4 @@ export SSH_ASKPASS="${SSH_ASKPASS:-/usr/libexec/openssh/gnome-ssh-askpass}"
 export SSH_ASKPASS_REQUIRE=prefer
 
 alias rclaude='CLAUDE_CONFIG_DIR=~/.claude-recombee claude'
+

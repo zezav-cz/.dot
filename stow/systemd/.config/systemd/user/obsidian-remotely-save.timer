@@ -1,0 +1,10 @@
+[Unit]
+Description=Run remotely-save sync every 15 minutes for vnotes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
