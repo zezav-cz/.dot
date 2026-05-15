@@ -7,6 +7,13 @@
   default = simple
 [core]
   autocrlf = input
+  pager = delta
+[delta]
+  navigate = true
+  side-by-side = false
+  syntax-theme = gruvbox-dark
+[interactive]
+  diffFilter = delta --color-only
 [alias]
   st = status
   ci = commit

@@ -40,6 +40,7 @@ PACKAGES = {
     "fedora": [
         # VCS & tools
         "git",
+        "git-delta",
         "tig",
         # Languages & build
         "ruby",
@@ -50,6 +51,7 @@ PACKAGES = {
         # CLI utils
         "wget",
         "curl",
+        "fzf",
         "code",
         # Editors
         "vim",
@@ -111,6 +113,8 @@ PACKAGES = {
         # e.g. ruby-devel -> ruby-dev, zlib-devel -> zlib1g-dev, neovim -> neovim,
         #      openssl-devel -> libssl-dev, readline-devel -> libreadline-dev
         "git",
+        "git-delta",
+        "fzf",
         "tig",
         "ruby",
         "golang",
@@ -139,6 +143,8 @@ PACKAGES = {
         # e.g. ruby-devel -> (included in ruby), neovim -> neovim,
         #      fuse-libs -> fuse3, code -> code (AUR)
         "git",
+        "git-delta",
+        "fzf",
         "tig",
         "ruby",
         "go",

@@ -23,7 +23,6 @@ plugins=(
     zsh-syntax-highlighting
     copybuffer   # ctrl-o
     copyfile
-    kubectl
     )
 
 fpath=(~/.zfunc $fpath)
@@ -44,6 +43,10 @@ alias k='kubectl '
 alias copy='wl-copy'
 
 eval "$(/usr/bin/mise activate zsh)"
+
+# fzf — fuzzy history (Ctrl+R) and file search (Ctrl+T)
+[[ -f /usr/share/fzf/shell/key-bindings.zsh ]] && source /usr/share/fzf/shell/key-bindings.zsh
+[[ -f /usr/share/fzf/shell/completion.zsh ]] && source /usr/share/fzf/shell/completion.zsh
 export PATH="${HOME}/.krew/bin:$PATH"
 
 # ssh-agent (systemd user service) — socket lives under $XDG_RUNTIME_DIR.
