@@ -30,6 +30,7 @@ usage = "latest"
 yq = "latest"
 go = "1.25"
 "go:github.com/zezav-cz/vn/cmd/vn" = { version = "v0.0.0-20260419170146-42cfc60b41b7", postinstall = "vn completion zsh > ~/.zfunc/_vn" }
+lazygit = "latest"
 
 [settings]
 experimental = true
