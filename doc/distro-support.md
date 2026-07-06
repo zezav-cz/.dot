@@ -4,7 +4,7 @@
 
 | Distro        | Status | Package manager | Notes |
 |---------------|--------|-----------------|-------|
-| Fedora        | Full   | dnf / rpm       | Primary target. COPR repos, VS Code repo, full package list. |
+| Fedora        | Full   | dnf / rpm       | Primary target. COPR repos, VS Code and Warp repos, full package list. |
 | Debian/Ubuntu | Stub   | apt-get / dpkg  | Manager implemented, package lists not yet ported. |
 | Arch          | Stub   | pacman           | Manager implemented, repo management not wired up. |
 

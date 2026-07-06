@@ -33,6 +33,15 @@ gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 """
 
+WARP_REPO = """\
+[warpdotdev]
+name=warpdotdev
+baseurl=https://releases.warp.dev/linux/rpm/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://releases.warp.dev/linux/keys/warp.asc
+"""
+
 # ──────────────────────────────────────────────
 # Packages (per distro)
 # ──────────────────────────────────────────────
@@ -53,6 +62,7 @@ PACKAGES = {
         "curl",
         "fzf",
         "code",
+        "warp-terminal",
         # Editors
         "vim",
         "neovim",

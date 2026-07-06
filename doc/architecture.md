@@ -40,7 +40,7 @@ install.py  (CLI, argument parsing, step dispatch)
 
 | # | Name       | Module             | What it does |
 |---|------------|--------------------|--------------|
-| 1 | `repos`    | `s01_repos.py`     | Enable COPR repos (mise, nwg-shell, cliphist, nerd-fonts, prismlauncher) and add the VS Code yum repo. |
+| 1 | `repos`    | `s01_repos.py`     | Enable COPR repos (mise, nwg-shell, cliphist, nerd-fonts, prismlauncher) and add the VS Code and Warp yum repos. |
 | 2 | `packages` | `s02_packages.py`  | Install all system packages via dnf (dev tools, Sway utilities, build deps, Cockpit, etc.). |
 | 3 | `shell`    | `s03_shell.py`     | Install Oh My Zsh and clone Zsh plugins (zsh-autosuggestions). |
 | 4 | `apps`     | `s04_apps.py`      | Download and install AppImage apps (Obsidian). Zotero support is stubbed out. |
