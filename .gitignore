@@ -1,4 +1,4 @@
-fonts/
+/fonts/
 .venv/
 __pycache__/
 *.pyc
