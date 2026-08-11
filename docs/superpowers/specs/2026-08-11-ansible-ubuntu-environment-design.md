@@ -191,6 +191,7 @@ hasn't seen playbook 1.
   never tested this; `sway-portability` exists specifically to make it
   true), and that the full `STOW_PACKAGES` set landed as real symlinks
   (spot-check a few, e.g. `~/.config/nvim` resolves into the repo).
+- Playbook 1 verified end-to-end on KVM (reboot + tuigreet + foot) 2026-08-11.
 
 ## Out of scope
 
