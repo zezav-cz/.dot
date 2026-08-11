@@ -15,3 +15,4 @@
   roles:
     - packages-base
     - greetd
+    - sway-minimal

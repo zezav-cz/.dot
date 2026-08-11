@@ -1,0 +1,33 @@
+---
+- name: Create sway config directories
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/sway/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - config.d
+    - modes.d
+
+- name: Install portable config.d fragments
+  ansible.builtin.copy:
+    src: "config.d/{{ item }}.conf"
+    dest: "{{ ansible_env.HOME }}/.config/sway/config.d/{{ item }}.conf"
+    mode: '0644'
+  loop:
+    - variables
+    - keymaps
+    - appearance
+    - inputs
+    - custom-keymap
+
+- name: Install resize mode fragment
+  ansible.builtin.copy:
+    src: modes.d/resize.conf
+    dest: "{{ ansible_env.HOME }}/.config/sway/modes.d/resize.conf"
+    mode: '0644'
+
+- name: Install minimal top-level sway config
+  ansible.builtin.template:
+    src: config.j2
+    dest: "{{ ansible_env.HOME }}/.config/sway/config"
+    mode: '0644'
