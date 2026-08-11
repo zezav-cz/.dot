@@ -59,3 +59,14 @@
     masked: true
     scope: user
   failed_when: false
+
+- name: Mask swaync's own systemd user unit (crash-loops racing sway's exec swaync)
+  ansible.builtin.systemd:
+    name: swaync.service
+    masked: true
+    scope: user
+  failed_when: false
+  # Ubuntu ships a swaync.service user unit that races the sway config's
+  # `exec swaync` for the org.freedesktop.Notifications D-Bus name and
+  # crash-loops. Masking the unit leaves the real, working instance
+  # (launched by sway's exec line) as the sole notification daemon.
