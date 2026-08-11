@@ -1,0 +1,12 @@
+---
+- name: Mark extracted fonts (idempotency sentinel)
+  ansible.builtin.file:
+    path: "{{ fonts_dir }}/{{ item.extract_dir }}/.extracted"
+    state: touch
+    mode: '0644'
+  loop: "{{ fonts }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Refresh font cache
+  ansible.builtin.command: fc-cache -f
+  changed_when: true

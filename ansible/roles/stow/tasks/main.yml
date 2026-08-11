@@ -45,8 +45,12 @@
   ansible.builtin.command:
     cmd: "mv {{ ansible_env.HOME }}/.zshrc {{ ansible_env.HOME }}/.zshrc.bak.{{ ansible_date_time.epoch }}"
   when: zshrc_stat.stat.exists and zshrc_stat.stat.isreg and not zshrc_stat.stat.islnk
+  changed_when: true
   # Guard: only move a real file. A stowed .zshrc is a symlink and must be
-  # left alone on re-runs so this stays idempotent.
+  # left alone on re-runs so this stays idempotent. changed_when: true is
+  # correct here (not a lint suppression) — the `when:` already restricts
+  # this task to the one case where it truly performs a change (moving a
+  # real file out of the way); it can never run as a no-op.
 
 - name: Stat ~/.config/sway
   ansible.builtin.stat:

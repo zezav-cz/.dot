@@ -1,0 +1,28 @@
+---
+# Pragmatic lint gate for this repo. Two rule families are skipped by
+# deliberate design, not oversight; everything else (no-handler,
+# no-changed-when) was fixed at the source instead of suppressed — see
+# roles/fonts/{tasks,handlers}/main.yml and roles/stow/tasks/main.yml.
+profile: min
+
+skip_list:
+  # role-name: ansible-lint wants role directory names matching
+  # ^[a-z][a-z0-9_]*$ (no hyphens). This repo's role names
+  # (bootstrap-auth, packages-base, packages-full, sway-minimal,
+  # sway-portability) are hyphenated by design, mirroring the hyphenated
+  # naming already used across this dotfiles repo (stow packages,
+  # installer step modules, etc.) and matching the phase-2 brief's own
+  # role names. Renaming them to underscores would be a purely cosmetic,
+  # repo-wide churn for no functional benefit.
+  - role-name
+
+  # var-naming[no-role-prefix]: ansible-lint wants every role-local var
+  # (and every register/set_fact target) prefixed with the role name,
+  # e.g. apps_appimage_dir instead of appimage_dir. The var names in this
+  # repo (appimage_dir, fonts, zshrc_stat, claude_config, ...) were
+  # chosen deliberately for readability within each role's own
+  # tasks/vars files and are never referenced cross-role (each role's
+  # vars are private to that role). Enforcing the prefix convention now
+  # would mean renaming ~16 variables across 6 roles for a style
+  # preference with no functional payoff.
+  - var-naming[no-role-prefix]
