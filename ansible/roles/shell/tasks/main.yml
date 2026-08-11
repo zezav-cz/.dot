@@ -1,0 +1,24 @@
+---
+- name: Clone oh-my-zsh
+  ansible.builtin.git:
+    repo: https://github.com/ohmyzsh/ohmyzsh.git
+    dest: "{{ omz_dir }}"
+    depth: 1
+    version: master
+    update: false
+
+- name: Clone zsh custom plugins
+  ansible.builtin.git:
+    repo: "{{ item.value }}"
+    dest: "{{ zsh_custom }}/plugins/{{ item.key }}"
+    depth: 1
+    version: master
+    update: false
+  loop: "{{ zsh_plugins | dict2items }}"
+  loop_control: { label: "{{ item.key }}" }
+
+- name: Set jan's default shell to zsh
+  become: true
+  ansible.builtin.user:
+    name: jan
+    shell: /usr/bin/zsh
