@@ -1,0 +1,8 @@
+---
+packages_base:
+  - sway
+  - foot
+  - greetd
+  - tuigreet
+  - xwayland
+  - lxpolkit

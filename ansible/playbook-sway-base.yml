@@ -12,4 +12,5 @@
 - name: Sway base (bare-server Sway + login screen)
   hosts: sway_hosts
   become: false
-  roles: []
+  roles:
+    - packages-base

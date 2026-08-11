@@ -1,0 +1,8 @@
+---
+- name: Install base Sway packages
+  become: true
+  ansible.builtin.apt:
+    name: "{{ packages_base }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
