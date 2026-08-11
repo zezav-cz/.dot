@@ -1,0 +1,61 @@
+---
+- name: Ensure app directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ appimage_dir }}"
+    - "{{ desktop_dir }}"
+    - "{{ icon_dir }}"
+
+- name: Download AppImages
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ appimage_dir }}/{{ item.name }}"
+    mode: '0755'
+  loop: "{{ apps }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Download Signal signing key
+  ansible.builtin.get_url:
+    url: "https://updates.signal.org/static/desktop/appimage.asc"
+    dest: /tmp/signal-key.asc
+    mode: '0644'
+
+- name: Download Signal signature
+  ansible.builtin.get_url:
+    url: "https://updates.signal.org/desktop/signal-desktop.AppImage.gpg"
+    dest: /tmp/signal-desktop.AppImage.gpg
+    mode: '0644'
+
+- name: Verify Signal AppImage signature
+  ansible.builtin.shell:
+    cmd: >
+      gpg --no-default-keyring --keyring /tmp/signal-verify.gpg --import /tmp/signal-key.asc &&
+      gpgv --keyring /tmp/signal-verify.gpg /tmp/signal-desktop.AppImage.gpg {{ appimage_dir }}/signal-desktop
+  changed_when: false
+
+- name: Download app icons (cosmetic, never fatal)
+  ansible.builtin.get_url:
+    url: "{{ item.icon_url }}"
+    dest: "{{ icon_dir }}/{{ item.name }}{{ item.icon_url | regex_search('\\.[a-zA-Z0-9]+$') | default('.png', true) }}"
+    mode: '0644'
+  loop: "{{ apps | selectattr('icon_url', 'defined') | list }}"
+  loop_control: { label: "{{ item.name }}" }
+  failed_when: false
+
+- name: Install desktop entries
+  ansible.builtin.template:
+    src: app.desktop.j2
+    dest: "{{ desktop_dir }}/{{ item.name }}.desktop"
+    mode: '0644'
+  loop: "{{ apps }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Mask dunst (prevents it replacing swaync)
+  ansible.builtin.systemd:
+    name: dunst.service
+    masked: true
+    scope: user
+  failed_when: false

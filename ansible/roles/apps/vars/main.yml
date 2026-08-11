@@ -1,0 +1,25 @@
+---
+appimage_dir: "{{ ansible_env.HOME }}/.local/bin"
+desktop_dir: "{{ ansible_env.HOME }}/.local/share/applications"
+icon_dir: "{{ ansible_env.HOME }}/.local/share/icons"
+apps:
+  - name: obsidian
+    display_name: Obsidian
+    url: "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.10.6/Obsidian-1.10.6.AppImage"
+    icon_url: "https://obsidian.md/images/obsidian-logo-gradient.svg"
+    categories: "Office;"
+    wm_class: obsidian
+  - name: headlamp
+    display_name: Headlamp
+    url: "https://github.com/kubernetes-sigs/headlamp/releases/download/v0.43.0/Headlamp-0.43.0-linux-x64.AppImage"
+    icon_url: "https://raw.githubusercontent.com/kubernetes-sigs/headlamp/main/docs/images/icon.png"
+    categories: "Development;"
+    wm_class: Headlamp
+  - name: signal-desktop
+    display_name: Signal
+    url: "https://updates.signal.org/desktop/signal-desktop.AppImage"
+    gpg_key_url: "https://updates.signal.org/static/desktop/appimage.asc"
+    gpg_sig_url: "https://updates.signal.org/desktop/signal-desktop.AppImage.gpg"
+    icon_url: "https://raw.githubusercontent.com/signalapp/Signal-Desktop/main/build/icons/png/1024x1024.png"
+    categories: "Network;InstantMessaging;"
+    wm_class: signal

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name={{ item.display_name }}
+Exec={{ appimage_dir }}/{{ item.name }} %U
+{% if item.icon_url is defined %}Icon={{ icon_dir }}/{{ item.name }}
+{% endif %}Terminal=false
+Categories={{ item.categories }}
+{% if item.wm_class is defined %}StartupWMClass={{ item.wm_class }}
+{% endif %}
