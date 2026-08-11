@@ -1,4 +1,26 @@
 ---
+- name: Stat ~/.config/sway to detect a stow-managed symlink
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.config/sway"
+  register: sway_minimal_config_stat
+  # Once the environment playbook has stowed the repo, ~/.config/sway is a
+  # folded symlink into ~/.dot/stow/sway/.config/sway. Writing through it
+  # (copy/template below) would edit the repo clone's real files in place,
+  # dirtying ~/.dot and breaking the stow role's next git clone/update
+  # ("Local modifications exist"). Detect that case and skip the writes —
+  # the repo-owned config is already authoritative. The bare-server path
+  # (no repo present, ~/.config/sway absent or a plain directory) is
+  # unaffected and still gets the self-contained minimal config below.
+
+- name: Determine whether ~/.config/sway is a stow-delivered symlink
+  ansible.builtin.set_fact:
+    sway_minimal_is_stowed: >-
+      {{
+        sway_minimal_config_stat.stat.exists and
+        (sway_minimal_config_stat.stat.islnk | default(false)) and
+        ('/.dot/' in (sway_minimal_config_stat.stat.lnk_source | default('')))
+      }}
+
 - name: Create sway config directories
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/sway/{{ item }}"
@@ -7,6 +29,7 @@
   loop:
     - config.d
     - modes.d
+  when: not sway_minimal_is_stowed
 
 - name: Install portable config.d fragments
   ansible.builtin.copy:
@@ -19,15 +42,18 @@
     - appearance
     - inputs
     - custom-keymap
+  when: not sway_minimal_is_stowed
 
 - name: Install resize mode fragment
   ansible.builtin.copy:
     src: modes.d/resize.conf
     dest: "{{ ansible_env.HOME }}/.config/sway/modes.d/resize.conf"
     mode: '0644'
+  when: not sway_minimal_is_stowed
 
 - name: Install minimal top-level sway config
   ansible.builtin.template:
     src: config.j2
     dest: "{{ ansible_env.HOME }}/.config/sway/config"
     mode: '0644'
+  when: not sway_minimal_is_stowed
