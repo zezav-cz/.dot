@@ -1,6 +1,6 @@
 # Ubuntu Server + Sway Bootstrap (Phase 1)
 
-**Status:** Approved
+**Status:** Phase 1 complete — verified on KVM 192.168.124.68 2026-08-11
 **Date:** 2026-08-11
 
 ## Context
