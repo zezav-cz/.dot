@@ -57,9 +57,9 @@ once they're part of the Ansible-managed package set.
 
 - `sway`
 - `foot`
-- `greetd`, `greetd-tuigreet`
-- `polkit-kde-agent` (or equivalent polkit authentication agent — the
-  polkit libraries are present on the image but no agent is running)
+- `greetd`, `tuigreet`
+- `lxpolkit` (the polkit agent actually installed — the polkit libraries
+  are present on the image but no agent is running by default)
 - `xwayland`
 - `fonts-noto` as a fallback font (the repo's Nerd Font isn't installed
   yet; `appearance.conf`'s font line will silently fall back to a
@@ -67,9 +67,10 @@ once they're part of the Ansible-managed package set.
 
 ## Login flow
 
-Configure `greetd` with `tuigreet` as the greeter, `command = "sway"` in
-`/etc/greetd/config.toml`. This replaces the currently-inactive default
-`getty` on tty1. On successful login, `tuigreet` execs `sway` directly.
+Configure `greetd` with `tuigreet` as the greeter,
+`command = "tuigreet --cmd sway"` in `/etc/greetd/config.toml`. This
+replaces the currently-inactive default `getty` on tty1. On successful
+login, `tuigreet` execs `sway` directly.
 
 ## Config strategy
 
@@ -114,7 +115,7 @@ sway config edits) not yet pushed to `origin`. The repo will be
 transferred via `rsync` from the local machine rather than `git clone`,
 so the test reflects the actual working tree, not stale `origin`.
 
-## sudo handling
+## sudo handling and auth posture
 
 `sudo` on the KVM currently requires a password on every invocation. For
 this disposable, single-user test VM, a `NOPASSWD` sudoers entry for
@@ -122,10 +123,37 @@ this disposable, single-user test VM, a `NOPASSWD` sudoers entry for
 fast. This is a security-relevant change but acceptable for a throwaway
 test machine under the user's control.
 
+**Explicit auth posture decision (fix wave, post-implementation):** in
+addition to `NOPASSWD` sudo, the `jan` account on this KVM has a
+blank/empty password (`passwd -S jan` shows `NP`), and
+`/etc/ssh/sshd_config` has `PermitEmptyPasswords yes` — meaning SSH
+access to this box requires no real authentication at all, layered on
+top of the passwordless sudo above.
+
+This is a **deliberate, explicit choice** for this specific throwaway,
+NAT'd, single-user test KVM under the owner's exclusive control — not an
+oversight, and not something the fix wave changed or hardened. It trades
+away all authentication because the box has no data worth protecting and
+no network exposure beyond the host's NAT.
+
+**This posture must NOT be replicated anywhere else.** It is a hard
+exclusion for phase 2 (Ansible for Ubuntu) and phase 3 (Ansible for
+Fedora): no future Ansible role may set a blank password, set
+`PermitEmptyPasswords yes`, or configure blanket `NOPASSWD` sudo as a
+default behavior, and none of this may be carried into a
+production/laptop target. If phase 2/3 need a fast-iteration mode for
+throwaway test VMs, it must be an explicit, opt-in, clearly-labeled
+profile — never the baseline.
+
 ## Verification
 
-No physical display access to this VM — verification is command-line
-and log-based, via SSH, not visual:
+There is no physical display access to this VM, but `virsh screenshot`
+and `virsh send-key` against the libvirt domain (`ubu`) provided real
+visual verification throughout — this was used to confirm the tuigreet
+prompt, the post-login Sway session, and the `foot` terminal actually
+rendered, not just that the underlying processes were running. This
+supplements, rather than replaces, the command-line/log-based checks
+below:
 
 - `systemctl status greetd` is active.
 - A `sway` process is running under the logged-in session.
@@ -135,6 +163,17 @@ and log-based, via SSH, not visual:
 - `journalctl` / Sway's log shows no fatal errors (non-fatal `exec`
   warnings for anything intentionally unconfigured are expected and
   fine).
+- **Cold-boot reboot test (fix wave, post-implementation):** the plan's
+  first success criterion — boot → tuigreet → login → Sway — was
+  additionally verified via a real `virsh reboot ubu`, not just a
+  hand-started greetd session. After the reboot, `virsh screenshot`
+  showed tuigreet's boxed "Authenticate into ubu" / "Username:" prompt
+  rendering unaided on tty1 (matching the original Task 6
+  `01-tuigreet.png` capture), and once SSH came back up,
+  `systemctl status greetd` showed a single clean start (no restart
+  loop) and `getty@tty1` was confirmed inactive. This confirms the login
+  flow survives a cold boot, not just the process tree left over from
+  manual setup.
 
 ## Open items carried to later phases
 
@@ -144,3 +183,40 @@ and log-based, via SSH, not visual:
   real laptop migration.
 - Nerd Font installation is deferred to whenever fonts are ported to
   Ansible (phase 2), matching `install.py`'s existing font step.
+- **The `layered-include` gap is much bigger than one line.** Fedora
+  ships 13 config fragments in `/usr/share/sway/config.d/` (window rules
+  for browser/pavucontrol/policykit, policykit agent autostart,
+  brightness/media/screenshot/volume keybindings, passthrough mode, the
+  bar, swayidle, xdg-desktop-autostart, xdg-user-dirs) via the
+  `layered-include` mechanism. Ubuntu has no `/usr/share/sway/` at
+  all — only `/etc/sway/config.d/50-systemd-user.conf`. Phase 2 needs a
+  real plan for this gap, not just "write a portable equivalent."
+- **Systemd user session environment is not imported on Ubuntu.** On the
+  live phase-1 session, `systemctl --user show-environment` does not
+  include `WAYLAND_DISPLAY`/`SWAYSOCK`/`XDG_CURRENT_DESKTOP`, and
+  `systemctl --user is-active graphical-session.target` reports
+  inactive. This is normally handled by the Fedora-specific fragment
+  excluded above. Anything depending on the systemd user session knowing
+  about the graphical session (xdg-desktop-portal, screenshare, file
+  pickers) won't work until this is fixed.
+- **`$volume_limit` in `variables.conf` is an orphaned reference on
+  Ubuntu.** Its comment says it's "consumed by
+  `/usr/share/sway/config.d/60-bindings-volume.conf`" — a path that
+  doesn't exist on Ubuntu, so volume/brightness/media keys are silently
+  non-functional there until this is addressed.
+- **The `greeter` system user created in Task 5 duplicates Ubuntu's own
+  greetd identity.** The `greetd` package already creates a `_greetd`
+  system user (visible via `getent passwd _greetd`), and
+  `/var/cache/tuigreet` is owned by `_greetd:_greetd`. Task 5 created a
+  separate `greeter` user instead (to match the brief's literal config
+  value) — this works today but is the wrong identity long-term. Phase
+  2's Ansible role should use `_greetd`, not create a redundant
+  `greeter` user.
+- **`greetd.service`'s shipped unit assumes vt7, but this config uses
+  vt1.** Ubuntu's `greetd.service` ships
+  `Conflicts=getty@tty7.service`/`After=getty@tty7.service`, not tty1 —
+  that mismatch is why `getty@tty1` had to be manually masked rather
+  than being handled automatically via the service's own `Conflicts=`
+  relationship. A cleaner fix for phase 2 is a
+  `Conflicts=getty@tty1.service` systemd drop-in expressing this
+  declaratively, rather than a blanket `systemctl mask`.
