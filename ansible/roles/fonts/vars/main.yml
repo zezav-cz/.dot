@@ -1,0 +1,9 @@
+---
+fonts_dir: "{{ ansible_env.HOME }}/.local/share/fonts"
+fonts:
+  - name: Meslo Nerd Font
+    url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip"
+    extract_dir: nerd-fonts
+  - name: Font Awesome 6 Console
+    url: "https://github.com/FortAwesome/Font-Awesome/releases/download/6.7.2/fontawesome-free-6.7.2-desktop.zip"
+    extract_dir: fontawesome-6-console

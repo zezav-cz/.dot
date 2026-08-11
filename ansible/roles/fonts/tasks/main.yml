@@ -1,0 +1,32 @@
+---
+- name: Ensure font extract dirs exist
+  ansible.builtin.file:
+    path: "{{ fonts_dir }}/{{ item.extract_dir }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ fonts }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Download and extract fonts
+  ansible.builtin.unarchive:
+    src: "{{ item.url }}"
+    dest: "{{ fonts_dir }}/{{ item.extract_dir }}"
+    remote_src: true
+    creates: "{{ fonts_dir }}/{{ item.extract_dir }}/.extracted"
+  loop: "{{ fonts }}"
+  loop_control: { label: "{{ item.name }}" }
+  register: font_extract
+
+- name: Mark extracted fonts (idempotency sentinel)
+  ansible.builtin.file:
+    path: "{{ fonts_dir }}/{{ item.extract_dir }}/.extracted"
+    state: touch
+    mode: '0644'
+  loop: "{{ fonts }}"
+  loop_control: { label: "{{ item.name }}" }
+  when: font_extract is changed
+
+- name: Refresh font cache
+  ansible.builtin.command: fc-cache -f
+  when: font_extract is changed
+  changed_when: font_extract is changed
