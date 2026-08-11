@@ -1,13 +1,29 @@
 ---
+# NOTE: GNU stow folds ~/.config/sway into a single directory symlink
+# (../.dot/stow/sway/.config/sway) rather than symlinking each file
+# individually, since the target didn't pre-exist as conflicting real
+# content. That means the leaf file itself is a regular file when statted
+# through the folded directory — `stat.islnk` on the leaf is not a valid
+# stow-delivery check here. Instead resolve the real path and confirm it
+# lands inside the repo clone, which is true under folded or per-file
+# stowing alike.
 - name: Assert repo-owned bar fragment is present via stow
   ansible.builtin.stat:
     path: "{{ ansible_env.HOME }}/.config/sway/config.d/90-bar.conf"
   register: bar_frag
 
-- name: Fail if bar fragment missing
+- name: Resolve the real (symlink-followed) path of the bar fragment
+  ansible.builtin.command:
+    cmd: "readlink -f {{ ansible_env.HOME }}/.config/sway/config.d/90-bar.conf"
+  changed_when: false
+  register: bar_frag_realpath
+
+- name: Fail if bar fragment missing or not delivered via the stowed repo clone
   ansible.builtin.assert:
-    that: bar_frag.stat.exists and bar_frag.stat.islnk
-    fail_msg: "90-bar.conf not stowed — waybar will not start"
+    that:
+      - bar_frag.stat.exists
+      - bar_frag_realpath.stdout == ansible_env.HOME ~ "/.dot/stow/sway/.config/sway/config.d/90-bar.conf"
+    fail_msg: "90-bar.conf not stowed from ~/.dot — waybar will not start"
 
 - name: Validate the full real sway config parses
   ansible.builtin.command:
