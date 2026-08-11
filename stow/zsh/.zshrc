@@ -89,6 +89,13 @@ export GROFF_NO_SGR=1
 export MANROFFOPT="-c"
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export PATH="${HOME}/.krew/bin:$PATH"
+# User bins + CLI-name shims (e.g. bat->batcat, fd->fdfind) live in ~/.local/bin.
+# Fedora puts it on PATH by default; fresh Ubuntu+zsh does not, so add it here.
+# Guarded so it never double-adds where it is already present.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
 export LIBVIRT_DEFAULT_URI='qemu:///system'
 
 # ssh-agent (systemd user service) — socket lives under $XDG_RUNTIME_DIR.
