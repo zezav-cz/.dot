@@ -1,4 +1,14 @@
 ---
+- name: Bootstrap auth (key handoff)
+  hosts: sway_hosts
+  become: false
+  gather_facts: false
+  vars:
+    # Allow password fallback for the very first connect (blank password today).
+    ansible_ssh_common_args: '-o PreferredAuthentications=publickey,password -o PubkeyAcceptedKeyTypes=+ssh-ed25519 -o StrictHostKeyChecking=no'
+  roles:
+    - bootstrap-auth
+
 - name: Sway base (bare-server Sway + login screen)
   hosts: sway_hosts
   become: false
