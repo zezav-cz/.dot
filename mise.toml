@@ -4,6 +4,8 @@ lefthook = "2.1.6"
 python = "3.12.10"
 uv = { version = "0.11.7", postinstall = "uv generate-shell-completion zsh > ~/.zfunc/_uv" }
 ruff = { version = "0.15.11", postinstall = "ruff generate-shell-completion zsh > ~/.zfunc/_ruff" }
+"pipx:ansible-core" = "2.18"
+"pipx:ansible-lint" = "latest"
 
 [tasks.lint]
 run = "ruff check install.py installer/"
