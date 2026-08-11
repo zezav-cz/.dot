@@ -1,0 +1,85 @@
+---
+packages_full_repos:
+  - name: vscode
+    key_url: https://packages.microsoft.com/keys/microsoft.asc
+    keyring: /etc/apt/keyrings/microsoft.gpg
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+    filename: vscode
+  - name: mise
+    key_url: https://mise.jdx.dev/gpg-key.pub
+    keyring: /etc/apt/keyrings/mise.gpg
+    repo: "deb [signed-by=/etc/apt/keyrings/mise.gpg arch=amd64] https://mise.jdx.dev/deb stable main"
+    filename: mise
+
+packages_full:
+  # VCS & tools
+  - git
+  - git-delta
+  - git-lfs
+  - tig
+  # Languages & build
+  - ruby
+  - ruby-dev
+  - golang-go
+  - mise # from jdx apt repo, see packages_full_repos
+  - cmake
+  # CLI utils
+  - wget
+  - curl
+  - fzf
+  - bat # binary installed as /usr/bin/batcat
+  - code # from Microsoft apt repo, see packages_full_repos
+  # Editors
+  - vim
+  - neovim
+  # Dotfile management
+  - stow
+  # Containers
+  - podman
+  # Sway / Wayland utilities
+  - waybar # not in Fedora's list (Sway Spin ships it in the base image); Ubuntu needs it explicit
+  - rofimoji
+  - grim
+  - slurp
+  - wf-recorder
+  - swappy
+  - wl-clipboard
+  - geoclue-2.0
+  - gammastep
+  - nwg-bar
+  - nwg-displays
+  - sway-notification-center
+  # FUSE (for AppImages) - fuse3 pulls in the runtime lib automatically,
+  # no separate fuse-libs equivalent needed
+  - fuse3
+  # Clipboard
+  - cliphist
+  # SSH
+  - ssh-askpass
+  # Build dependencies
+  - zlib1g-dev
+  - libffi-dev
+  - libreadline-dev
+  - libssl-dev
+  - make
+  - gcc
+  - patch
+  - autoconf
+  - automake
+  - bison
+  - libtool
+  - libsqlite3-dev
+  - libyaml-dev
+  - libpcap-dev
+  - libusb-1.0-0-dev
+  # Cockpit
+  - cockpit-packagekit
+  - cockpit-podman
+  - cockpit-storaged
+  - cockpit-networkmanager
+  - pcp
+  - python3-pcp
+  # Misc
+  - libdbus-glib-1-2
+  # Games
+  - prismlauncher

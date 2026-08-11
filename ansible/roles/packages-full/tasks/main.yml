@@ -1,0 +1,40 @@
+---
+- name: Ensure apt keyrings dir exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add signing keys for extra repos
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ item.key_url }}"
+    dest: "{{ item.keyring }}.asc"
+    mode: "0644"
+  loop: "{{ packages_full_repos }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Dearmor extra-repo keys
+  become: true
+  ansible.builtin.command:
+    cmd: "gpg --batch --yes --dearmor -o {{ item.keyring }} {{ item.keyring }}.asc"
+    creates: "{{ item.keyring }}"
+  loop: "{{ packages_full_repos }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Add extra apt repositories
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "{{ item.repo }}"
+    filename: "{{ item.filename }}"
+    state: present
+  loop: "{{ packages_full_repos }}"
+  loop_control: { label: "{{ item.name }}" }
+
+- name: Install full package set
+  become: true
+  ansible.builtin.apt:
+    name: "{{ packages_full }}"
+    state: present
+    update_cache: true
