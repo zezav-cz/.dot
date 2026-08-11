@@ -50,6 +50,12 @@ repo · **dropped** = intentionally excluded, reason given.
 |---|---|---|---|
 | `stow` | `stow` | apt | |
 
+## Shell
+
+| Fedora | Ubuntu | Type | Notes |
+|---|---|---|---|
+| *(not in list — see note)* | `zsh` | apt | **Addition beyond the literal `config.py` port**, same category as `waybar` below. `zsh` does not appear in `installer/config.py`'s Fedora list because Fedora Sway Spin ships `zsh` in its base OS image — the installer never needed to manage it. Ubuntu has no equivalent spin (confirmed empirically: `command -v zsh` and `/usr/bin/zsh` both absent on the live KVM before this fix), so it must be installed explicitly here; without it, the `shell` role (Task 10), which sets `jan`'s login shell to `/usr/bin/zsh`, would have nothing to point at. |
+
 ## Containers
 
 | Fedora | Ubuntu | Type | Notes |
@@ -157,6 +163,7 @@ dependency of the `cockpit-*` sub-packages.
 - No package required a pip/pipx fallback — every Sway/wlroots utility Fedora sources from
   COPR (`nwg-bar`, `nwg-displays`, `rofimoji`, `cliphist`, `SwayNotificationCenter`,
   `prismlauncher`) turned out to have a native apt package in Ubuntu's universe archive.
-- One package was **added** beyond the literal `config.py` port: `waybar`. It's absent from
-  Fedora's list because Fedora Sway Spin bundles it in the base image; Ubuntu has no such
-  spin, so `packages-full` installs it explicitly (see the Sway / Wayland utilities table).
+- Two packages were **added** beyond the literal `config.py` port: `waybar` and `zsh`. Both
+  are absent from Fedora's list because Fedora Sway Spin bundles them in the base image;
+  Ubuntu has no such spin, so `packages-full` installs both explicitly (see the Sway /
+  Wayland utilities and Shell tables).
