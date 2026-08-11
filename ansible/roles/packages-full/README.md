@@ -78,6 +78,13 @@ repo · **dropped** = intentionally excluded, reason given.
 | `nwg-bar` | `nwg-bar` | apt | Available directly (candidate `0.1.6-1build1`, description "GTK3-based button bar for wlroots-based compositors") — no pip/pipx fallback needed, unlike the brief's worst-case expectation. |
 | `nwg-displays` | `nwg-displays` | apt | Available directly (candidate `0.3.26-1`, description "output management utility for Wayland compositors like Sway") — no pip/pipx fallback needed. |
 | `SwayNotificationCenter` | `sway-notification-center` | apt | Confirmed apt name per brief; candidate `0.12.4-1`. |
+| *(not in list — see note)* | `brightnessctl` | apt | **Addition beyond the literal `config.py` port.** Task 15 ported `stow/sway/.config/sway/config.d/60-bindings-brightness.conf` verbatim from Fedora, which shells out to `brightnessctl`. Not in Fedora's `config.py` list because Fedora Sway Spin ships it in the base image. Confirmed live: candidate `0.5.1-3.1build1` (universe). |
+| *(not in list — see note)* | `playerctl` | apt | **Addition beyond the literal `config.py` port.** `60-bindings-media.conf` (Task 15) shells out to `playerctl` for MPRIS media-key control; same base-image-only story as `waybar`. Confirmed live: candidate `2.4.1-3build1` (universe). |
+| *(not in list — see note)* | `swayidle` | apt | **Addition beyond the literal `config.py` port.** `90-swayidle.conf` (Task 15) requires `swayidle` for the idle/lock daemon. Confirmed live: candidate `1.9.0-1` (universe). |
+| *(not in list — see note)* | `swaylock` | apt | **Addition beyond the literal `config.py` port.** Same `90-swayidle.conf` (and `inputs.conf`'s lid-close binding) requires `swaylock` as the actual screen locker invoked by `swayidle`. Confirmed live: candidate `1.8.4-1` (universe). |
+| *(not in list — see note)* | `pulseaudio-utils` | apt | **Addition beyond the literal `config.py` port.** `60-bindings-volume.conf` (Task 15) shells out to `pactl`, which `pulseaudio-utils` provides on Ubuntu (works against PipeWire's pulse-compat layer too). Confirmed live: candidate `1:17.0+dfsg1-2ubuntu4` (universe). |
+| *(not in list — see note)* | `libnotify-bin` | apt | **Addition beyond the literal `config.py` port.** The brightness and volume binding fragments (Task 15) both optionally call `notify-send` for on-screen feedback; `libnotify-bin` provides it. Confirmed live: candidate `0.8.8-1` (main). |
+| *(not in list — see note)* | `grimshot` | apt | **Addition beyond the literal `config.py` port.** `60-bindings-screenshot.conf` (Task 15) requires `grimshot` (Print/Alt+Print/Ctrl+Print bindings), distinct from the `grim`+`slurp` pair already in this list which `custom-keymap.conf`'s `$mod+Print` bindings use directly. Ships as its own apt package on Ubuntu, not bundled into `grim` or `sway`. Confirmed live: candidate `1.10.1-1build1` (universe). |
 
 ## FUSE (for AppImages)
 
@@ -171,3 +178,10 @@ dependency of the `cockpit-*` sub-packages.
   for `unarchive`/`fc-cache` but which `config.py` never had to declare since the Python
   installer used `zipfile` directly). See the Sway / Wayland utilities, Shell, and Fonts
   tables.
+- Seven more packages were **added** as a Task 16 prerequisite fix: `brightnessctl`,
+  `playerctl`, `swayidle`, `swaylock`, `pulseaudio-utils`, `libnotify-bin`, and `grimshot` —
+  all binaries that Task 15's ported sway `config.d/` keybinding fragments (brightness,
+  media, idle/lock, volume, screenshot) shell out to, but which this role hadn't declared
+  yet. Same base-image story as `waybar`/`zsh`: Fedora Sway Spin ships these in its base
+  image, so `config.py` never needed to list them. All seven confirmed live against the KVM
+  with `apt-cache policy`. See the Sway / Wayland utilities table.

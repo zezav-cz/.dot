@@ -54,6 +54,13 @@ packages_full:
   - nwg-bar
   - nwg-displays
   - sway-notification-center
+  - brightnessctl
+  - playerctl
+  - swayidle
+  - swaylock
+  - pulseaudio-utils
+  - libnotify-bin
+  - grimshot
   # FUSE (for AppImages) - fuse3 pulls in the runtime lib automatically,
   # no separate fuse-libs equivalent needed
   - fuse3
