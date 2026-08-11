@@ -2,7 +2,7 @@
 Type=Application
 Name={{ item.display_name }}
 Exec={{ appimage_dir }}/{{ item.name }} %U
-{% if item.icon_url is defined %}Icon={{ icon_dir }}/{{ item.name }}
+{% if item.icon_url is defined %}Icon={{ icon_dir }}/{{ item.name }}{{ item.icon_url | regex_search('\.[a-zA-Z0-9]+$') | default('.png', true) }}
 {% endif %}Terminal=false
 Categories={{ item.categories }}
 {% if item.wm_class is defined %}StartupWMClass={{ item.wm_class }}
