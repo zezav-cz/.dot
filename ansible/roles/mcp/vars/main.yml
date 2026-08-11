@@ -1,0 +1,15 @@
+---
+mcp_servers:
+  sequential-thinking:
+    type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    env: {}
+  vnotes:
+    type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "{{ ansible_env.HOME }}/vnotes"]
+    env: {}
+  kubernetes-mcp-server:
+    command: npx
+    args: ["-y", "kubernetes-mcp-server@latest", "--read-only"]

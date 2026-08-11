@@ -1,0 +1,22 @@
+---
+- name: Read existing ~/.claude.json (if any)
+  ansible.builtin.slurp:
+    src: "{{ ansible_env.HOME }}/.claude.json"
+  register: claude_raw
+  failed_when: false
+
+- name: Parse existing config
+  ansible.builtin.set_fact:
+    claude_config: "{{ (claude_raw.content | b64decode | from_json) if (claude_raw.content is defined) else {} }}"
+
+- name: Merge MCP servers (existing entries win — never clobber)
+  ansible.builtin.set_fact:
+    claude_merged: >-
+      {{ claude_config | combine({'mcpServers':
+        (mcp_servers | combine(claude_config.mcpServers | default({}))) }) }}
+
+- name: Write merged config atomically
+  ansible.builtin.copy:
+    content: "{{ claude_merged | to_nice_json(indent=2) }}\n"
+    dest: "{{ ansible_env.HOME }}/.claude.json"
+    mode: '0644'
