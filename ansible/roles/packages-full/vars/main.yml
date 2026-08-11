@@ -10,6 +10,18 @@ packages_full_repos:
     keyring: /etc/apt/keyrings/mise.gpg
     repo: "deb [signed-by=/etc/apt/keyrings/mise.gpg arch=amd64] https://mise.jdx.dev/deb stable main"
     filename: mise
+  - name: tailscale
+    # Not in the Ubuntu archive. Tailscale's own repo, ASCII-armored key
+    # variant (fits the same download+dearmor pattern as vscode/mise
+    # above; the "noarmor" variant on the same host is already binary and
+    # would break gpg --dearmor). Uses ansible_distribution_release so
+    # this tracks whatever codename the target box is actually on.
+    # Verified live against the KVM's current codename (resolute): both
+    # the key URL and the resulting repo's Release file return HTTP 200.
+    key_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.gpg"
+    keyring: /etc/apt/keyrings/tailscale.gpg
+    repo: "deb [signed-by=/etc/apt/keyrings/tailscale.gpg] https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main"
+    filename: tailscale
 
 packages_full:
   # VCS & tools
@@ -17,6 +29,7 @@ packages_full:
   - git-delta
   - git-lfs
   - tig
+  - lazygit # config-tool audit: stow/zsh/.zshrc `alias lg='lazygit'`
   # Languages & build
   - ruby
   - ruby-dev
@@ -27,7 +40,9 @@ packages_full:
   - wget
   - curl
   - fzf
-  - bat # binary installed as /usr/bin/batcat
+  - bat # binary installed as /usr/bin/batcat; shimmed below as ~/.local/bin/bat
+  - fd-find # binary installed as /usr/bin/fdfind; shimmed below as ~/.local/bin/fd
+  - ripgrep # config-tool audit: nvim telescope.lua live_grep + zsh fzf integration; binary is `rg`, no rename
   - code # from Microsoft apt repo, see packages_full_repos
   # Editors
   - vim
@@ -41,9 +56,13 @@ packages_full:
   - zsh # not in Fedora's list (Sway Spin ships it in the base image); Ubuntu needs it explicit
   # Containers
   - podman
+  # Networking
+  - tailscale # from tailscale.com apt repo, see packages_full_repos; config: sway config `exec sleep 3 && tailscale systray`
   # Sway / Wayland utilities
   - waybar # not in Fedora's list (Sway Spin ships it in the base image); Ubuntu needs it explicit
+  - rofi # config-tool audit: sway config.d/variables.conf `$menu`/`$rofi_cmd`, $mod+d launcher, clipboard/recording pickers
   - rofimoji
+  - kanshi # config-tool audit: sway config `exec kanshi` (output/profile management)
   - grim
   - slurp
   - wf-recorder
@@ -59,6 +78,8 @@ packages_full:
   - swayidle
   - swaylock
   - pulseaudio-utils
+  - pavucontrol # config-tool audit: waybar config.jsonc pulseaudio module `"on-click": "pavucontrol"`
+  - bluez # config-tool audit: waybar config.jsonc bluetooth module `"on-click": "foot -e bluetoothctl"`
   - libnotify-bin
   - grimshot
   # FUSE (for AppImages) - fuse3 pulls in the runtime lib automatically,
@@ -95,3 +116,17 @@ packages_full:
   - libdbus-glib-1-2
   # Games
   - prismlauncher
+
+# Config-tool audit: Ubuntu ships a handful of packages under a renamed
+# binary (usually because the plain name was already taken by an older,
+# unrelated Debian package). The stowed zsh/nvim configs invoke the
+# upstream-conventional name (`bat`, `fd`), not the Ubuntu one, so we shim
+# the expected name onto the real binary. Symlinks land in ~/.local/bin,
+# which is already on jan's PATH for the graphical session (confirmed live
+# via /proc/<sway-pid>/environ) courtesy of
+# stow/systemd/.config/environment.d/path.conf.
+packages_full_shims:
+  - name: bat
+    target: /usr/bin/batcat
+  - name: fd
+    target: /usr/bin/fdfind

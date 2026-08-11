@@ -38,3 +38,19 @@
     name: "{{ packages_full }}"
     state: present
     update_cache: true
+
+- name: Ensure ~/.local/bin exists for CLI-name shims
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.local/bin"
+    state: directory
+    mode: "0755"
+
+- name: Shim renamed CLI binaries to their upstream-conventional names
+  ansible.builtin.file:
+    src: "{{ item.target }}"
+    dest: "{{ ansible_env.HOME }}/.local/bin/{{ item.name }}"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ packages_full_shims }}"
+  loop_control: { label: "{{ item.name }} -> {{ item.target }}" }
