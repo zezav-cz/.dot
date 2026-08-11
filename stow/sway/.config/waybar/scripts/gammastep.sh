@@ -18,11 +18,11 @@ fi
 if pgrep -x "$GS_BIN" > /dev/null; then
     TEXT="On"
     CLASS="on"
-    TOOLTIP="Gammstep: on"
+    TOOLTIP="Gammastep: on"
 else
     TEXT="Off"
     CLASS="off"
-    TOOLTIP="Gammstep: off"
+    TOOLTIP="Gammastep: off"
 fi
 
 printf '{"text": "%s", "class": "%s", "tooltip": "%s"}\n' "$TEXT" "$CLASS" "$TOOLTIP"

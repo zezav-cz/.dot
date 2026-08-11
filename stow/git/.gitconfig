@@ -19,3 +19,5 @@
   useForceIfIncludes = true
 [url "git@github.com:zezav-cz/"]
   insteadOf = https://github.com/zezav-cz/
+[url "git@git.recombee.net:"]
+	insteadOf = https://git.recombee.net/

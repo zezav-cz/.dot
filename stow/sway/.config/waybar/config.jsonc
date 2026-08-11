@@ -1,82 +1,77 @@
 {
-  "layer": "top", // Waybar at top layer
-  "position": "top", // Waybar position (top|bottom|left|right)
+  "layer": "top",
+  "position": "top",
+  "height": 20,
   "modules-left": [
     "sway/workspaces",
     "sway/mode"
   ],
   "modules-right": [
+    "custom/recording",
     "custom/colorscheme",
     "custom/gammastep",
-    "pulseaudio", // TODO
     "custom/notification",
     "idle_inhibitor",
     "network",
     "bluetooth",
     "sway/language",
     "battery",
+    "pulseaudio",
     "tray",
     "clock",
     "custom/power"
   ],
-  "custom/colorscheme": {
-    "format": "{}",
-    "interval": 5,
-    "return-type": "json",
-    "exec": "~/.config/waybar/scripts/colorscheme.sh",
-    "on-click": "~/.config/waybar/scripts/colorscheme.sh toggle"
-  },
-  "custom/gammastep": {
-    "format": " {}",
-    "interval": 5,
-    "return-type": "json",
-    "exec": "~/.config/waybar/scripts/gammastep.sh",
-    "on-click": "~/.config/waybar/scripts/gammastep.sh toggle"
-  },
-  "pulseaudio": {
-      // "scroll-step": 1, // %, can be a float
-      "format": "{volume}% {icon} {format_source}",
-      "format-bluetooth": "{volume}% {icon}  {format_source}",
-      "format-bluetooth-muted": " {icon}  {format_source}",
-      "format-muted": " {format_source}",
-      "format-source": "{volume}% ",
-      "format-source-muted": "",
-      "format-icons": {
-          "headphone": "",
-          "hands-free": "",
-          "headset": "",
-          "phone": "",
-          "portable": "",
-          "car": "",
-          "default": ["", "", ""]
-      },
-      "on-click": "pavucontrol"
-  },
   "sway/workspaces": {
     "tooltip": false,
     "all-outputs": true
   },
-  // sudo dnf install nwg-bar
-  "custom/power": {
-    "format": " {}",
-    "on-click": "nwg-bar -x"
+  "custom/recording": {
+    "format": "{}",
+    "interval": 5,
+    "signal": 8,
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/recording.sh",
+    "on-click": "~/.local/bin/screenrecord",
+    "tooltip": true
   },
-  "bluetooth": {
-    "format": " {status}",
-    "format-connected": " {device_alias}",
-    "format-connected-battery": " {device_alias} {device_battery_percentage}%",
-    "format-no-controller": " N/A",
+  "custom/colorscheme": {
+    "format": "󰸌",
+    "interval": 5,
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/colorscheme.sh",
+    "on-click": "~/.config/waybar/scripts/colorscheme.sh toggle",
+    "tooltip": true
+  },
+  "custom/gammastep": {
+    "format": " {}",
+    "interval": 5,
+    "return-type": "json",
+    "exec": "~/.config/waybar/scripts/gammastep.sh",
+    "on-click": "~/.config/waybar/scripts/gammastep.sh toggle",
+    "tooltip": true
+  },
+  "pulseaudio": {
+    "scroll-step": 1,
+    "format": "{icon} {volume}%  {format_source}",
+    "format-bluetooth": "{icon} {volume}%  {format_source}",
+    "format-bluetooth-muted": "󰝟  {format_source}",
+    "format-muted": "󰝟  {format_source}",
+    "format-source": "󰍬 {volume}%",
+    "format-source-muted": "󰍭",
     "format-icons": {
-      "enabled": "",
-      "disabled": ""
+      "headphone": "󰋋",
+      "hands-free": "󰋎",
+      "headset": "󰋎",
+      "phone": "",
+      "portable": "",
+      "car": "",
+      "default": ["󰕿", "󰖀", "󰕾"]
     },
-    "interval": 10,
+    "on-click": "pavucontrol",
     "tooltip": true,
-    "on-click": "foot -e bluetoothctl"
+    "tooltip-format": "{desc}"
   },
-  // --- Custom DND ---
   "custom/notification": {
-    "tooltip": true,
     "format": "{icon}",
     "format-icons": {
       "notification": "󱅫",
@@ -93,52 +88,73 @@
     "exec": "swaync-client -swb",
     "on-click": "swaync-client -t -sw",
     "on-click-right": "swaync-client -d -sw",
-    "escape": true
+    "escape": true,
+    "tooltip": true
   },
-  // --- Idle Inhibitor ---
   "idle_inhibitor": {
     "format": "{icon}",
     "format-icons": {
-      "activated": "",
+      "activated": "󰈈",
       "deactivated": "󰾪"
     },
-    "tooltip-format-activated": "Idle: Activated",
-    "tooltip-format-deactivated": "Idle: Deactivated"
+    "tooltip": true,
+    "tooltip-format-activated": "Idle inhibitor: on — screen will stay awake",
+    "tooltip-format-deactivated": "Idle inhibitor: off — screen may sleep"
   },
-  // --- Network ---
   "network": {
     "interval": 5,
-    "format-wifi": " {essid} ({signalStrength}%)",
-    "format-ethernet": "󰈀 {ifname}",
-    "format-disconnected": " Disconnected",
-    "tooltip-format": "{ifname}: {ipaddr}"
+    "format-wifi": "{icon}",
+    "format-ethernet": "󰈀",
+    "format-disconnected": "󰤭",
+    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+    "tooltip": true,
+    "tooltip-format-wifi": "{essid}  {signalStrength}%\n{ipaddr}",
+    "tooltip-format-ethernet": "{ifname}\n{ipaddr}",
+    "tooltip-format-disconnected": "No network connection"
+  },
+  "bluetooth": {
+    "format": "󰂯",
+    "format-connected": "󰂱",
+    "format-disabled": "󰂲",
+    "format-no-controller": "",
+    "interval": 10,
+    "tooltip": true,
+    "tooltip-format": "Bluetooth: {status}",
+    "tooltip-format-connected": "{device_alias}\n{device_battery_percentage}% battery",
+    "on-click": "foot -e bluetoothctl"
   },
   "sway/language": {
-    "format": " {}", // Adds Keyboard icon
-    "tooltip": false
+    "format": " {short}",
+    "tooltip": true,
+    "tooltip-format": "{long}"
   },
-  // --- Battery ---
   "battery": {
     "interval": 10,
     "states": {
       "warning": 30,
       "critical": 15
     },
-    // Unified Format: Static Icon + Percentage
-    "format": " {capacity}%",
-    "format-charging": " {capacity}% {power:0.0f}W", // Only changes to Bolt when charging
-    "format-plugged": " {capacity}%",
-    "tooltip": true
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂔 {capacity}%",
+    "format-plugged": "󰚚 {capacity}%",
+    "format-full": "󰁹 {capacity}%",
+    "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+    "tooltip": true,
+    "tooltip-format": "{timeTo}\n{power}W"
   },
   "tray": {
-    "icon-size": 11,
-    "spacing": 10,
-    "tooltip": false
+    "icon-size": 14,
+    "spacing": 8
   },
-  // --- Clocks ---
   "clock": {
     "interval": 10,
-    "format": "󰃶 {:%e %b %Y - %H:%M}",
+    "format": "{:%d %b  %H:%M}",
+    "tooltip": true,
+    "tooltip-format": "{:%A, %d %B %Y\nWeek %V}"
+  },
+  "custom/power": {
+    "format": "󰐥",
+    "on-click": "nwg-bar -x",
     "tooltip": false
   }
 }

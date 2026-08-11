@@ -1,0 +1,172 @@
+// Place your key bindings in this file to override the defaults
+[
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "when": "terminalFocus",
+    "args": {
+      "text": "\\\r\n"
+    }
+  },
+  {
+    "key": "ctrl+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "when": "terminalFocus",
+    "args": {
+      "text": "\\\r\n"
+    }
+  },
+  // terminal
+  {
+    "key": "ctrl+t",
+    "command": "-workbench.action.showAllSymbols"
+  },
+  {
+    "key": "ctrl+t",
+    "command": "workbench.action.terminal.toggleTerminal"
+  },
+  // Primary sidebar toggles
+  {
+    // Hide
+    "key": "ctrl+s",
+    "command": "workbench.action.toggleSidebarVisibility"
+  },
+  {
+    // Explorer
+    "key": "alt+1",
+    "command": "workbench.view.explorer"
+  },
+  {
+    // Search
+    "key": "alt+2",
+    "command": "workbench.view.search"
+  },
+  {
+    // Source Control
+    "key": "alt+3",
+    "command": "workbench.view.scm"
+  },
+  {
+    // Timeline
+    "key": "alt+4",
+    "command": "timeline.focus"
+  },
+  {
+    // GitHub Pull Requests
+    "key": "alt+5",
+    "command": "workbench.view.extension.github-pull-requests"
+  },
+  {
+    // Remote Explorer
+    "key": "alt+6",
+    "command": "workbench.view.remote",
+  },
+  {
+    // Debug
+    "key": "alt+7",
+    "command": "workbench.view.debug",
+  },
+  {
+    // Extensions
+    "key": "alt+8",
+    "command": "workbench.view.extensions",
+  },
+  // Mise
+  {
+    "key": "ctrl+m t",
+    "command": "mise.tasks"
+  },
+  {
+    "key": "ctrl+m i",
+    "command": "mise.install",
+  },
+  // TODO: descriebe what this does
+  {
+    "key": "ctrl+k ctrl+k",
+    "command": "-editor.action.selectFromAnchorToCursor",
+    "when": "editorTextFocus && selectionAnchorSet"
+  },
+  {
+    "key": "ctrl+k ctrl+k",
+    "command": "-editor.action.defineKeybinding",
+    "when": "resource == 'vscode-userdata:/home/jan/.config/Code/User/keybindings.json'"
+  },
+  {
+    "key": "ctrl+k ctrl+k",
+    "command": "workbench.action.toggleAuxiliaryBar"
+  },
+  {
+    "key": "ctrl+alt+b",
+    "command": "-workbench.action.toggleAuxiliaryBar"
+  },
+  {
+    "key": "ctrl+s",
+    "command": "-workbench.action.files.save"
+  },
+  // nvim-style leader chords outside the text editor (VSCodeVim only works with
+  // editor focus). Scope is deliberately narrow: sidebar trees or an empty
+  // editor area only — never panels/webviews (Claude Code input, PR views, ...),
+  // where a bare "space" chord would swallow typed spaces.
+  {
+    "key": "space f f",
+    "command": "workbench.action.quickOpen",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space f g",
+    "command": "workbench.action.quickTextSearch",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space f b",
+    "command": "workbench.action.showAllEditors",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space f t",
+    "command": "workbench.action.showAllEditorsByMostRecentlyUsed",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space n",
+    "command": "workbench.action.nextEditor",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space p",
+    "command": "workbench.action.previousEditor",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space x",
+    "command": "workbench.action.closeActiveEditor",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space m l",
+    "command": "workbench.action.openPreviousRecentlyUsedEditorInGroup",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space e",
+    "command": "workbench.view.explorer",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space shift+e",
+    "command": "workbench.files.action.showActiveFileInExplorer",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  {
+    "key": "space g s",
+    "command": "workbench.view.scm",
+    "when": "!inputFocus && !terminalFocus && (sideBarFocus || activeEditorGroupEmpty && !panelFocus && !auxiliaryBarFocus)"
+  },
+  // Explorer toggle-close (mirrors NvimTreeToggle) — must come after the
+  // "space e" fallback above so it wins while the tree is focused
+  {
+    "key": "space e",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "explorerViewletFocus && sideBarVisible && !inputFocus"
+  }
+]

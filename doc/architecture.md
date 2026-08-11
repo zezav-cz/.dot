@@ -25,7 +25,7 @@ Packages using each mode are listed in `installer/config.py`:
 ```
 install.py  (CLI, argument parsing, step dispatch)
   |
-  +-- installer/steps/     (7 ordered step modules)
+  +-- installer/steps/     (9 ordered step modules)
   +-- installer/config.py  (all data: package lists, URLs, stow targets)
   +-- installer/cmd.py     (subprocess wrapper with dry-run, download, retries)
   +-- installer/distro.py  (distro detection + PackageManager abstraction)
@@ -36,30 +36,34 @@ install.py  (CLI, argument parsing, step dispatch)
 `run_step(dry_run)` function. Steps can be selected or skipped via `--only` and
 `--skip`.
 
-## The 7 installation steps
+## The 9 installation steps
 
 | # | Name       | Module             | What it does |
 |---|------------|--------------------|--------------|
-| 1 | `repos`    | `s01_repos.py`     | Enable COPR repos (mise, nwg-shell, cliphist, nerd-fonts, prismlauncher) and add the VS Code and Warp yum repos. |
-| 2 | `packages` | `s02_packages.py`  | Install all system packages via dnf (dev tools, Sway utilities, build deps, Cockpit, etc.). |
-| 3 | `shell`    | `s03_shell.py`     | Install Oh My Zsh and clone Zsh plugins (zsh-autosuggestions). |
-| 4 | `apps`     | `s04_apps.py`      | Download and install AppImage apps (Obsidian). Zotero support is stubbed out. |
-| 5 | `fonts`    | `s05_fonts.py`     | Download Nerd Fonts (Meslo) and Font Awesome, update font cache. |
-| 6 | `stow`     | `s06_stow.py`      | Symlink all packages under `stow/` into `~/` using `stow -d stow -t $HOME`. Removes a plain `~/.zshrc` first if present. |
-| 7 | `vnotes`   | `s07_vnotes.py`    | Clone or pull the private VNotes repository to `~/VNotes`. |
+| 1 | `update`   | `s00_update.py`    | Update all system packages (`dnf update -y`) before installing anything. Fedora only. |
+| 2 | `repos`    | `s01_repos.py`     | Enable COPR repos (mise, nwg-shell, cliphist, nerd-fonts, prismlauncher) and add the VS Code yum repo. |
+| 3 | `packages` | `s02_packages.py`  | Install all system packages via dnf (dev tools, Sway utilities, build deps, Cockpit, etc.). |
+| 4 | `shell`    | `s03_shell.py`     | Install Oh My Zsh and clone Zsh plugins (zsh-autosuggestions). |
+| 5 | `apps`     | `s04_apps.py`      | Install AppImage apps declared in `APPS` (`installer/config.py`): download, optional GPG verification against the vendor key, install to `~/.local/bin/<name>`, download icon, write `.desktop` entry to `~/.local/share/applications/`. Currently Obsidian and Signal. Adding an app = adding one `AppInstall` entry to `APPS`. Zotero support is stubbed out. |
+| 6 | `fonts`    | `s05_fonts.py`     | Download Nerd Fonts (Meslo) and Font Awesome, update font cache. |
+| 7 | `stow`     | `s06_stow.py`      | Symlink all packages under `stow/` into `~/` using `stow -d stow -t $HOME`. Removes a plain `~/.zshrc` first if present. |
+| 8 | `vnotes`   | `s07_vnotes.py`    | Clone or pull the private VNotes repository to `~/VNotes`. |
+| 9 | `mcp`      | `s08_mcp.py`       | Register Claude Code MCP servers from `MCP_SERVERS` (`installer/config.py`) by merging missing entries into `~/.claude.json`. Never overwrites existing entries. |
 
 ## Dependency graph
 
 Steps run in order because later steps depend on earlier ones:
 
 ```
-repos --> packages --> shell --> apps --> fonts --> stow --> vnotes
+update --> repos --> packages --> shell --> apps --> fonts --> stow --> vnotes --> mcp
 ```
 
 - `packages` needs repos enabled first
 - `shell` needs `zsh` from packages
 - `stow` needs `stow` binary from packages and configs to exist
 - `vnotes` needs `git` from packages
+- `mcp` runs after `vnotes` because the vnotes MCP server points at the
+  cloned `~/vnotes` directory (servers run via `npx`, provided by mise/node)
 
 ## Distro abstraction layer
 

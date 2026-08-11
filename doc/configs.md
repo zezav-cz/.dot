@@ -140,6 +140,27 @@ the repo.
 
 Files: `~/.config/pgcli/config`
 
+## vscode
+
+VSCode user settings and keybindings. The VSCodeVim bindings mirror the nvim
+scheme (leader = space: `<leader>ff/fg/fb/ft` finder/grep, `<leader>n/p/x/ml`
+buffers, `gd/K` + `<leader>g[dirtD]` go-to / `<leader>p[dirt]` peek /
+`<leader>rn/ca` LSP, `<leader>e/E` explorer,
+`<leader>gs/gb` git). `keybindings.json` duplicates the navigation chords with
+`when` guards so they also work outside a text editor (empty workbench,
+sidebar trees). Stowed with `--no-folding` so VSCode's runtime state
+(`workspaceStorage/`, `globalStorage/`, ...) stays out of the repo.
+
+Files: `~/.config/Code/User/settings.json`, `~/.config/Code/User/keybindings.json`
+
+## Claude Code MCP servers
+
+Not a stow package -- MCP servers (sequential-thinking, vnotes filesystem,
+kubernetes) are declared in `installer/config.py` (`MCP_SERVERS`) and merged
+into `~/.claude.json` by the `mcp` installer step (`s08_mcp.py`). Existing
+entries are never overwritten, so manual tweaks survive re-runs. Servers are
+launched via `npx` (node comes from the mise config).
+
 ## Cross-package dependencies
 
 Some configs reference tools from other packages:

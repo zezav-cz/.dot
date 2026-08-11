@@ -1,15 +1,14 @@
-"""Enable COPR repos and add VS Code and Warp repositories (Fedora only)."""
+"""Enable COPR repos and add the VS Code repository (Fedora only)."""
 
 import logging
 from pathlib import Path
 
 from installer.cmd import run
-from installer.config import COPR_REPOS, VSCODE_REPO, WARP_REPO
+from installer.config import COPR_REPOS, VSCODE_REPO
 from installer.distro import Distro
 from installer.errors import InstallerError
 
 VSCODE_REPO_FILE = Path("/etc/yum.repos.d/vscode.repo")
-WARP_REPO_FILE = Path("/etc/yum.repos.d/warpdotdev.repo")
 
 
 def run_step(dry_run: bool = False, distro: Distro = Distro.UNKNOWN, **kw) -> None:
@@ -36,17 +35,3 @@ def run_step(dry_run: bool = False, distro: Distro = Distro.UNKNOWN, **kw) -> No
         logging.info("VS Code repo file already exists. Overwriting.")
 
     run("tee", str(VSCODE_REPO_FILE), sudo=True, input=VSCODE_REPO)
-
-    # Warp repository
-    logging.info("Adding Warp repository...")
-    run(
-        "rpm",
-        "--import",
-        "https://releases.warp.dev/linux/keys/warp.asc",
-        sudo=True,
-    )
-
-    if WARP_REPO_FILE.exists() and not dry_run:
-        logging.info("Warp repo file already exists. Overwriting.")
-
-    run("tee", str(WARP_REPO_FILE), sudo=True, input=WARP_REPO)

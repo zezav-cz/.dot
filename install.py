@@ -120,21 +120,21 @@ def main() -> None:
     failed = []
     skipped = []
 
-    try:
-        for name, mod in STEPS:
-            if args.only and name not in args.only:
-                continue
-            if name in args.skip:
-                logging.info(f"Skipping step: {name}")
-                skipped.append(name)
-                continue
+    for name, mod in STEPS:
+        if args.only and name not in args.only:
+            continue
+        if name in args.skip:
+            logging.info(f"Skipping step: {name}")
+            skipped.append(name)
+            continue
 
-            logging.info(f"{'=' * 20} {name} {'=' * 20}")
+        logging.info(f"{'=' * 20} {name} {'=' * 20}")
+        try:
             mod.run_step(dry_run=args.dry_run, distro=distro)
             succeeded.append(name)
-    except InstallerError as e:
-        logging.error(str(e))
-        sys.exit(1)
+        except InstallerError as e:
+            logging.error(f"Step '{name}' failed: {e}")
+            failed.append(name)
 
     # Summary
     logging.info("=" * 50)

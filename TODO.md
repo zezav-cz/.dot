@@ -41,3 +41,28 @@
 - nwg-look
 - nwg-menu
 - nwg-panel
+
+
+---
+- Change default to zsh
+- ssh keys
+- install claude
+- clode settings
+- install tailscale
+
+
+Firewall:
+# --- Interní (trusted) ---
+sudo firewall-cmd --permanent --zone=trusted --change-interface=docker0
+sudo firewall-cmd --permanent --zone=trusted --change-interface=br-4a16249e6503
+sudo firewall-cmd --permanent --zone=trusted --change-interface=virbr0
+sudo firewall-cmd --permanent --zone=trusted --change-interface=virbr1
+sudo firewall-cmd --permanent --zone=trusted --change-interface=vnet4
+
+# --- Externí (block) ---
+sudo firewall-cmd --permanent --zone=block --change-interface=enp1s0f0
+sudo firewall-cmd --permanent --zone=block --change-interface=wlp2s0
+sudo firewall-cmd --permanent --zone=block --change-interface=tailscale0
+
+sudo firewall-cmd --reload
+sudo firewall-cmd --get-active-zones

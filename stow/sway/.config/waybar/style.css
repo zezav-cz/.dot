@@ -1,4 +1,16 @@
-/* Reset all styles */
+/* Gruvbox dark palette */
+@define-color bg      rgba(40, 40, 40, 0.92);
+@define-color bg-dark #282828;
+@define-color fg      #ebdbb2;
+@define-color dim     #504945;
+@define-color green   #b8bb26;
+@define-color yellow  #fabd2f;
+@define-color red     #fb4934;
+@define-color red-alt #cc241d;
+@define-color teal    #83a598;
+@define-color blue    #458588;
+@define-color orange  #fe8019;
+
 * {
     border: none;
     border-radius: 0;
@@ -7,63 +19,132 @@
     padding: 0;
 }
 
-/* The whole bar */
 #waybar {
-    background: #323232;
-    color: white;
-    font-family: 'Noto Sans Mono', 'Font Awesome 6 Free', 'Font Awesome 6 Brands', monospace;
-    font-size: 13px;
+    background: @bg;
+    color: @fg;
+    font-family: 'MesloLGS Nerd Font Mono', 'Font Awesome 6 Free', 'Font Awesome 6 Brands', monospace;
+    font-size: 12px;
 }
 
-/* Each module */
+#custom-recording,
 #custom-colorscheme,
 #custom-gammastep,
 #pulseaudio,
 #idle_inhibitor,
-#network,
 #bluetooth,
 #language,
 #battery,
-#tray,
-#clock,
-#custom-notification,
-#custom-power
-{
-    padding: 0 10px;
-    border-right: 1px solid #666666;
+#custom-notification {
+    padding: 0 8px;
 }
 
-/* -----------------------------------------------------------------------------
- * Module styles
- * -------------------------------------------------------------------------- */
-
+/* Battery severity */
+#battery.charging {
+    color: @green;
+}
 #battery.warning {
-    color: orange;
+    color: @yellow;
 }
-
 #battery.critical {
-    color: red;
+    color: @red;
 }
 
+/* Network: dim only when fully disconnected */
 #network.disconnected {
-    color: orange;
+    color: @dim;
 }
 
+/* Pulseaudio: slightly larger so volume text isn't dwarfed by 16px icon modules */
+#pulseaudio {
+    font-size: 13px;
+}
+#pulseaudio.muted {
+    color: @dim;
+}
+
+/* Idle inhibitor: yellow = sleep blocked */
+#idle_inhibitor.activated {
+    color: @yellow;
+}
+
+/* Bluetooth: teal when connected, dim when off */
+#bluetooth.connected {
+    color: @teal;
+}
+#bluetooth.disabled,
+#bluetooth.off {
+    color: @dim;
+}
+
+/* Gammastep: warm orange when on, dim when off */
+#custom-gammastep.on {
+    color: @orange;
+}
+#custom-gammastep.off {
+    color: @dim;
+}
+
+/* Recording: red while wf-recorder is running */
+#custom-recording.recording {
+    color: @red;
+}
+
+/* Colorscheme: orange = light mode, default = dark mode */
+#custom-colorscheme.light {
+    color: @orange;
+}
+#custom-colorscheme.dark {
+    color: @fg;
+}
+
+/* Notifications: dim in DND */
+#custom-notification.dnd-none,
+#custom-notification.dnd-notification,
+#custom-notification.dnd-inhibited-none,
+#custom-notification.dnd-inhibited-notification {
+    color: @dim;
+}
+
+/* Workspaces */
 #workspaces button {
     padding: 0 5px;
     background-color: transparent;
-    color: #ffffff;
+    color: @fg;
 }
-
-#workspaces button:hover {
-    background: rgba(0, 0, 0, 0.2);
-}
-
 #workspaces button.focused {
-    background-color: #64727D;
+    background-color: @blue;
+    color: @fg;
 }
-
 #workspaces button.urgent {
-    background-color: #eb4d4b;
+    background-color: @red-alt;
+    color: @bg-dark;
 }
 
+#language {
+    min-width: 30px;
+}
+
+/* Icon-only modules: larger so they're easier to see */
+#network,
+#bluetooth,
+#idle_inhibitor,
+#custom-colorscheme,
+#custom-gammastep,
+#custom-notification,
+#custom-power {
+    font-size: 16px;
+}
+
+/* Group separators: workspaces | indicators | tray | clock | power */
+#custom-power {
+    margin-right: 6px;
+}
+
+#network,
+#tray,
+#clock,
+#custom-power {
+    margin-left: 6px;
+    padding: 0 8px 0 12px;
+    border-left: 1px solid @dim;
+}

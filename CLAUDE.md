@@ -22,7 +22,7 @@ python3 install.py --dry-run                # preview without executing
 python3 install.py -v                       # verbose
 ```
 
-The installer (`install.py` + `installer/`) runs 7 ordered steps: `repos -> packages -> shell -> apps -> fonts -> stow -> vnotes`. Each step is a module in `installer/steps/sNN_*.py` exposing `run_step(dry_run)`.
+The installer (`install.py` + `installer/`) runs 9 ordered steps: `update -> repos -> packages -> shell -> apps -> fonts -> stow -> vnotes -> mcp`. Each step is a module in `installer/steps/sNN_*.py` exposing `run_step(dry_run)`.
 
 ## Dev tooling (when editing this repo)
 
@@ -55,7 +55,7 @@ Edits must conform to `.editorconfig` (2-space indent, UTF-8, LF, trailing-white
 
 ## Architecture notes
 
-- **`installer/config.py` is the single source of truth** for all installer data: COPR repos, package lists per distro, font downloads, AppImage versions/URLs, Oh-My-Zsh plugins, `STOW_PACKAGES`, `STOW_NO_FOLDING`, VNotes repo. Prefer changing data there over editing step modules.
+- **`installer/config.py` is the single source of truth** for all installer data: COPR repos, package lists per distro, font downloads, AppImage versions/URLs, Oh-My-Zsh plugins, `STOW_PACKAGES`, `STOW_NO_FOLDING`, VNotes repo, Claude Code MCP servers (`MCP_SERVERS`). Prefer changing data there over editing step modules.
 - **Distro abstraction**: `installer/distro.py` detects the distro from `/etc/os-release` and provides a `PackageManager` ABC with `DnfManager`, `AptManager`, `PacmanManager`. Fedora is fully supported; Debian/Arch package lists are partial stubs.
 - **Subprocess wrapper**: all shell-outs go through `installer/cmd.py` (`run`, `download`, `is_installed`, `ensure_dir`, `package_installed`) which respects the global `DRY_RUN` flag. Do not call `subprocess` directly from steps.
 
@@ -69,7 +69,7 @@ stow/sway/.config/sway/      ->  ~/.config/sway/
 stow/my-scripts/.local/bin/  ->  ~/.local/bin/
 ```
 
-The installer runs `stow -d stow -t $HOME <pkg>` from the repo root. Registered packages: `git`, `mise`, `nvim`, `rofi`, `ssh-agent`, `sway`, `systemd`, `tmux`, `zsh`, `foot`, `k9s`, `nwg-displays`. `my-scripts` and `pgcli` are listed in `STOW_NO_FOLDING` (uses `stow --no-folding`) so the shared target directory does not itself become a symlink.
+The installer runs `stow -d stow -t $HOME <pkg>` from the repo root. Registered packages: `git`, `mise`, `nvim`, `rofi`, `ssh-agent`, `sway`, `systemd`, `tmux`, `zsh`, `foot`, `k9s`, `nwg-displays`. `my-scripts`, `pgcli` and `vscode` are listed in `STOW_NO_FOLDING` (uses `stow --no-folding`) so the shared target directory does not itself become a symlink.
 
 When adding a new config, create its stow-compatible directory structure under a new subdirectory of `stow/`, then add it to `STOW_PACKAGES` or `STOW_NO_FOLDING` in `installer/config.py`.
 

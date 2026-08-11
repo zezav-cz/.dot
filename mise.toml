@@ -2,8 +2,8 @@
 lefthook = "2.1.6"
 "npm:editorconfig-checker" = "6.1.1"
 python = "3.12.10"
-uv = "0.11.7"
-ruff = "0.15.11"
+uv = { version = "0.11.7", postinstall = "uv generate-shell-completion zsh > ~/.zfunc/_uv" }
+ruff = { version = "0.15.11", postinstall = "ruff generate-shell-completion zsh > ~/.zfunc/_ruff" }
 
 [tasks.lint]
 run = "ruff check install.py installer/"

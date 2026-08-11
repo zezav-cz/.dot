@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export ALL_PROXY=socks5://127.0.0.1:1080
+export no_proxy=localhost,127.0.0.1,.svc,cluster.local
+
+# kubeconfig auth spawns `kubectl oidc-login` (mise + krew); the sway/rofi
+# session PATH lacks both, so extend PATH here
+if command -v mise >/dev/null; then
+  eval "$(mise env -s bash)"
+fi
+export PATH="$HOME/.krew/bin:$PATH"
+
+exec "$HOME/.local/bin/headlamp" "$@"
