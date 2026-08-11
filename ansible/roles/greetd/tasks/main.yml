@@ -1,0 +1,49 @@
+---
+- name: Ensure _greetd system user exists
+  become: true
+  ansible.builtin.user:
+    name: _greetd
+    system: true
+    create_home: false
+    home: /var/lib/greetd
+    shell: /usr/sbin/nologin
+
+- name: Write greetd config
+  become: true
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: /etc/greetd/config.toml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart greetd
+
+- name: Create greetd systemd drop-in dir
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/system/greetd.service.d
+    state: directory
+    mode: '0755'
+
+- name: Install getty@tty1 conflict drop-in
+  become: true
+  ansible.builtin.copy:
+    src: getty-conflict.conf
+    dest: /etc/systemd/system/greetd.service.d/getty-conflict.conf
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart greetd
+
+- name: Ensure getty@tty1 is not masked (superseded by declarative Conflicts=)
+  become: true
+  ansible.builtin.systemd:
+    name: getty@tty1.service
+    masked: false
+
+- name: Enable greetd
+  become: true
+  ansible.builtin.systemd:
+    name: greetd
+    enabled: true
+    state: started
