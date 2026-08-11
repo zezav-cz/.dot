@@ -103,6 +103,8 @@ repo · **dropped** = intentionally excluded, reason given.
 | Fedora | Ubuntu | Type | Notes |
 |---|---|---|---|
 | `nerd-fonts` | *(excluded)* | dropped | Explicitly out of scope for this role. Nerd Fonts are handled by the dedicated `fonts` role (Task 12), which downloads/installs font archives directly rather than via apt — Ubuntu has no `nerd-fonts` apt package anyway. |
+| *(not in list — see note)* | `unzip` | apt | **Addition beyond the literal `config.py` port.** The `fonts` role (Task 12) uses `ansible.builtin.unarchive` with `remote_src: true` against `.zip` releases, which shells out to the `unzip` binary on the target. `unzip` was already present on the live KVM as a transitive dependency (auto-installed, not `apt-mark`ed manual) — not a guaranteed base-image package — so it's declared explicitly here for reproducibility. |
+| *(not in list — see note)* | `fontconfig` | apt | **Addition beyond the literal `config.py` port.** Provides `fc-cache`, which the `fonts` role runs to refresh the font cache after extraction. Already present on the live KVM (transitive dependency of `qt6-qpa-plugins`/`libpango-1.0-0`), but declared explicitly so it isn't left to an incidental dependency chain. |
 
 ## Build dependencies
 
@@ -163,7 +165,9 @@ dependency of the `cockpit-*` sub-packages.
 - No package required a pip/pipx fallback — every Sway/wlroots utility Fedora sources from
   COPR (`nwg-bar`, `nwg-displays`, `rofimoji`, `cliphist`, `SwayNotificationCenter`,
   `prismlauncher`) turned out to have a native apt package in Ubuntu's universe archive.
-- Two packages were **added** beyond the literal `config.py` port: `waybar` and `zsh`. Both
-  are absent from Fedora's list because Fedora Sway Spin bundles them in the base image;
-  Ubuntu has no such spin, so `packages-full` installs both explicitly (see the Sway /
-  Wayland utilities and Shell tables).
+- Four packages were **added** beyond the literal `config.py` port: `waybar` and `zsh` (both
+  absent from Fedora's list because Fedora Sway Spin bundles them in the base image; Ubuntu
+  has no such spin), and `unzip`/`fontconfig` (tooling the `fonts` role, Task 12, depends on
+  for `unarchive`/`fc-cache` but which `config.py` never had to declare since the Python
+  installer used `zipfile` directly). See the Sway / Wayland utilities, Shell, and Fonts
+  tables.
