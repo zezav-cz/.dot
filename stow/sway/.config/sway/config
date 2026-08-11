@@ -37,5 +37,7 @@ exec sleep 3 && tailscale systray
 
 output * bg $HOME/.config/sway/wallpaper/f43-01-day.jpg fill
 
-# Merge system-level sway configs (/usr/share, /etc, then user overrides)
-include '$(/usr/libexec/sway/layered-include "/usr/share/sway/config.d/*.conf" "/etc/sway/config.d/*.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/*.conf")'
+# Portable layered config include. On Fedora, /usr/libexec/sway/layered-include
+# dedups fragments by basename (user copies override system ones). On distros
+# without it (Ubuntu), fall back to plain includes of the system + user layers.
+include '$([ -x /usr/libexec/sway/layered-include ] && /usr/libexec/sway/layered-include "/usr/share/sway/config.d/*.conf" "/etc/sway/config.d/*.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/*.conf" || printf "%s\n" /etc/sway/config.d/*.conf "${XDG_CONFIG_HOME:-$HOME/.config}"/sway/config.d/*.conf)'
