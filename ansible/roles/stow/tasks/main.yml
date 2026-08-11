@@ -1,0 +1,87 @@
+---
+# Two-phase bootstrap: the deploy key below is generated ON the KVM (the
+# private key never leaves the box). The FIRST run of this role gets as far
+# as key generation and then the "Clone/update the .dot repo" task fails
+# (expected — the pubkey isn't registered with GitHub yet). From the control
+# node, register the pubkey as a read-only deploy key:
+#   PUB=$(ssh -i ~/.ssh/dot_ansible_ed25519 jan@<host> 'cat ~/.ssh/dot_deploy.pub')
+#   gh repo deploy-key add /dev/stdin --repo zezav-cz/.dot \
+#     --title "kvm-$(date +%Y%m%d)" --read-only <<<"$PUB"
+#   gh repo deploy-key list --repo zezav-cz/.dot
+# Then re-run the role/playbook; the clone succeeds.
+
+- name: Generate read-only deploy key on the KVM
+  community.crypto.openssh_keypair:
+    path: "{{ ansible_env.HOME }}/.ssh/dot_deploy"
+    type: ed25519
+    comment: "dot-deploy@ubu"
+
+- name: Configure ssh to use the deploy key for github.com
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.ssh/config"
+    create: true
+    mode: '0600'
+    marker: "# {mark} ANSIBLE dot deploy key"
+    block: |
+      Host github.com
+        IdentityFile ~/.ssh/dot_deploy
+        IdentitiesOnly yes
+        StrictHostKeyChecking accept-new
+
+- name: Clone/update the .dot repo
+  ansible.builtin.git:
+    repo: "{{ stow_repo }}"
+    dest: "{{ stow_dest }}"
+    version: "{{ stow_version }}"
+    accept_hostkey: true
+    update: true
+
+- name: Stat ~/.zshrc
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+  register: zshrc_stat
+
+- name: Back up a non-symlink ~/.zshrc
+  ansible.builtin.command:
+    cmd: "mv {{ ansible_env.HOME }}/.zshrc {{ ansible_env.HOME }}/.zshrc.bak.{{ ansible_date_time.epoch }}"
+  when: zshrc_stat.stat.exists and zshrc_stat.stat.isreg and not zshrc_stat.stat.islnk
+  # Guard: only move a real file. A stowed .zshrc is a symlink and must be
+  # left alone on re-runs so this stays idempotent.
+
+- name: Stat ~/.config/sway
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.config/sway"
+  register: sway_config_stat
+
+- name: Remove phase-1 plain sway config files so stow can symlink
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/sway"
+    state: absent
+  when: sway_config_stat.stat.exists and not sway_config_stat.stat.islnk
+  # sway-minimal wrote plain files here; stow needs a clean target to link into.
+  # This is safe: the authoritative config now comes from the repo.
+  # Guard: once stow has folded ~/.config/sway into a symlink, leave it alone
+  # on re-runs — otherwise this would tear it down and force a needless
+  # relink every time, breaking idempotency.
+
+- name: Stow folded packages
+  ansible.builtin.command:
+    cmd: "stow -d {{ stow_dest }}/stow -t {{ ansible_env.HOME }} --restow {{ item }}"
+  loop: "{{ stow_packages }}"
+  register: stow_folded
+  changed_when: "'LINK' in stow_folded.stderr or 'UNLINK' in stow_folded.stderr"
+
+- name: Stow no-folding packages
+  ansible.builtin.command:
+    cmd: "stow -d {{ stow_dest }}/stow -t {{ ansible_env.HOME }} --no-folding --restow {{ item }}"
+  loop: "{{ stow_no_folding }}"
+  register: stow_nofold
+  changed_when: "'LINK' in stow_nofold.stderr or 'UNLINK' in stow_nofold.stderr"
+
+- name: Clone lazy.nvim
+  ansible.builtin.git:
+    repo: "{{ lazy_nvim_repo }}"
+    dest: "{{ lazy_nvim_path }}"
+    version: stable
+    depth: 1
+    update: false
