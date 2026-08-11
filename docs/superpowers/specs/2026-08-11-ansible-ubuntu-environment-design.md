@@ -1,6 +1,6 @@
 # Ansible for Ubuntu (Phase 2)
 
-**Status:** Approved
+**Status:** Phase 2 complete — verified on KVM 192.168.124.68 2026-08-11
 **Date:** 2026-08-11
 
 ## Context
@@ -192,6 +192,27 @@ hasn't seen playbook 1.
   true), and that the full `STOW_PACKAGES` set landed as real symlinks
   (spot-check a few, e.g. `~/.config/nvim` resolves into the repo).
 - Playbook 1 verified end-to-end on KVM (reboot + tuigreet + foot) 2026-08-11.
+- Playbook 2 (`playbook-environment.yml`) verified end-to-end on KVM
+  2026-08-11: two consecutive full runs both idempotent (second run
+  `changed=0` across all 37 tasks); `virsh reboot` + tuigreet greeter
+  screenshot + send-key login; **waybar and swaync confirmed on-screen** —
+  `virsh screenshot` of the live desktop shows the waybar bar rendered
+  across the top (workspace indicator, tray, clock), and `pgrep -a -u jan
+  waybar`/`swaync` both show running processes; `systemctl --user
+  show-environment` confirms `DISPLAY`/`WAYLAND_DISPLAY`/`SWAYSOCK` are now
+  imported into the systemd user manager (phase 1's env-import finding
+  resolved). Stow symlink spot-check (`~/.config/nvim`, `~/.config/foot`,
+  `~/.config/sway/config`, `~/.tmux.conf`) all resolve into
+  `~/.dot/stow/...`. One residual, non-blocking finding surfaced during
+  this pass: `systemctl --user is-active graphical-session.target` still
+  reports `inactive` — nothing in stock Ubuntu's sway packaging or this
+  repo's config ever issues `systemctl --user start
+  graphical-session.target`, so the target itself never activates even
+  though the env vars it would carry are correctly imported and waybar/
+  swaync run fine as direct `exec`-launched processes rather than via
+  their (Ubuntu-packaged, and here redundant/crash-looping)
+  `waybar.service`/`swaync.service` units. Left as a follow-up, not fixed
+  here — out of this task's verification-only scope.
 
 ## Out of scope
 
