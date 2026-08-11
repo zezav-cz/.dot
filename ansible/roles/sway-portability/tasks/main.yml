@@ -1,0 +1,19 @@
+---
+- name: Assert repo-owned bar fragment is present via stow
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.config/sway/config.d/90-bar.conf"
+  register: bar_frag
+
+- name: Fail if bar fragment missing
+  ansible.builtin.assert:
+    that: bar_frag.stat.exists and bar_frag.stat.islnk
+    fail_msg: "90-bar.conf not stowed — waybar will not start"
+
+- name: Validate the full real sway config parses
+  ansible.builtin.command:
+    cmd: sway -c {{ ansible_env.HOME }}/.config/sway/config -C
+  environment:
+    WLR_BACKENDS: headless
+  changed_when: false
+  register: sway_validate
+  failed_when: sway_validate.rc != 0
