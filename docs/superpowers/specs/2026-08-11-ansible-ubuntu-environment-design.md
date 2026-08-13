@@ -1,6 +1,11 @@
 # Ansible for Ubuntu (Phase 2)
 
-**Status:** Phase 2 complete — verified on KVM 192.168.124.68 2026-08-11
+**Status:** Phase 2 complete — verified end-to-end from a bare Ubuntu 26.04
+reinstall on KVM 192.168.124.68 (2026-08-13): both playbooks run clean and
+idempotent from scratch, full waybar desktop renders after reboot. The
+from-scratch test surfaced and fixed a real bug — Ubuntu 26.04's default
+`sudo-rs` breaks Ansible `become` password auth; `bootstrap-auth` now
+switches the system to classic sudo first.
 **Date:** 2026-08-11
 
 ## Context
