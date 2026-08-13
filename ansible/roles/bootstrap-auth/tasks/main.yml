@@ -1,4 +1,23 @@
 ---
+# Ubuntu 26.04 defaults to sudo-rs, whose password-prompt format Ansible's
+# become plugin does not recognise (runs time out "waiting for privilege
+# escalation prompt"). Switch the system default back to classic sudo BEFORE
+# any become:true task runs. This uses a raw shell with the become password
+# piped to the current sudo (sudo-rs accepts -S), because Ansible's own become
+# is exactly what is broken until the switch lands. Requires the become
+# password via `-e ansible_become_password=...` (or `-K`) on a sudo-rs host.
+- name: Detect the default sudo implementation
+  ansible.builtin.raw: readlink -f /usr/bin/sudo
+  register: default_sudo
+  changed_when: false
+
+- name: Switch default sudo from sudo-rs to classic sudo (Ansible become is incompatible with sudo-rs)
+  ansible.builtin.raw: >-
+    printf '%s\n' {{ ansible_become_password | quote }} |
+    sudo -S update-alternatives --set sudo /usr/bin/sudo.ws
+  when: "'sudo.ws' not in default_sudo.stdout"
+  changed_when: true
+
 - name: Install dedicated Ansible SSH public key for jan
   ansible.posix.authorized_key:
     user: jan
@@ -14,7 +33,7 @@
     validate: 'sshd -t -f %s'
   notify: Restart sshd
 
-- name: Confirm NOPASSWD sudo still works over the key connection
+- name: Confirm privilege escalation works over the key connection
   become: true
   ansible.builtin.command: 'true'
   changed_when: false
