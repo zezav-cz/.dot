@@ -1,4 +1,24 @@
 ---
+# Ubuntu 24.04+ restricts unprivileged user namespaces via AppArmor, which
+# breaks the Chromium sandbox in Electron AppImages (Obsidian, Signal,
+# Headlamp): they fall back to the SUID sandbox, which cannot be setuid-root
+# inside the /tmp AppImage mount, and abort. Re-allowing unprivileged userns
+# keeps the sandbox working (via namespaces) — safer than --no-sandbox.
+- name: Check for the apparmor unprivileged-userns restriction knob
+  ansible.builtin.stat:
+    path: /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+  register: userns_knob
+
+- name: Allow unprivileged user namespaces (Electron/AppImage sandbox)
+  become: true
+  ansible.posix.sysctl:
+    name: kernel.apparmor_restrict_unprivileged_userns
+    value: '0'
+    sysctl_file: /etc/sysctl.d/99-unprivileged-userns.conf
+    state: present
+    reload: true
+  when: userns_knob.stat.exists
+
 - name: Ensure app directories exist
   ansible.builtin.file:
     path: "{{ item }}"
