@@ -1,5 +1,20 @@
 ---
 # .dot is a public repo — cloned over HTTPS, no credentials needed.
+
+# An older key-based run may have left ~/.dot with a git@ SSH remote, which
+# the git module below would then fetch over (and fail on a keyless host).
+# Reconcile the remote to the public HTTPS URL before the git module runs.
+- name: Check for an existing .dot clone
+  ansible.builtin.stat:
+    path: "{{ stow_dest }}/.git"
+  register: dot_git_dir
+
+- name: Point an existing .dot clone at the public HTTPS remote
+  ansible.builtin.command:
+    cmd: "git -C {{ stow_dest }} remote set-url origin {{ stow_repo }}"
+  when: dot_git_dir.stat.exists
+  changed_when: false
+
 - name: Clone/update the .dot repo
   ansible.builtin.git:
     repo: "{{ stow_repo }}"
