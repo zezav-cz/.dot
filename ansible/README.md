@@ -24,4 +24,13 @@ ssh <user>@<IP> 'sudo reboot'
 ssh <user>@<IP> 'mise install'
 ```
 
+`vnotes` is a private repo. Clone it by forwarding your workstation's
+ssh-agent (which must have a key with access to `zezav-cz/vnotes`):
+
+```bash
+ansible-playbook -i '<IP>,' -u <user> --ssh-extra-args='-o ForwardAgent=yes' playbook-environment.yml
+```
+
+Or skip it: `--skip-tags vnotes`.
+
 Clone a non-default branch: add `-e stow_version=<branch>`.
