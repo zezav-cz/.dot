@@ -118,21 +118,16 @@ hasn't seen playbook 1.
   get a documented per-package resolution during implementation (PPA,
   snap, direct `.deb`, build-from-source, or an explicit "dropped for
   Ubuntu, here's why").
-- **`stow`** — generates a dedicated **read-only deploy key** for this
-  KVM and adds it to `zezav-cz/.dot` via `gh repo deploy-key add` (the
-  session already has `gh` authenticated against this private repo).
-  Clones `git@github.com:zezav-cz/.dot.git` to `~/.dot` on the target,
-  then runs the same `stow` invocations `installer/steps/s06_stow.py`
-  does: full `STOW_PACKAGES` set, `--no-folding` for `STOW_NO_FOLDING`,
-  backing up a pre-existing non-symlink `~/.zshrc`, and cloning
-  `lazy.nvim`. This **supersedes** `sway-minimal`'s embedded copies with
-  real symlinks from the cloned repo — running this playbook is expected
-  to change every file `sway-minimal` created.
-
-  **Prerequisite:** the current `ubuntu` branch must be pushed to `origin`
-  before this role can clone anything meaningful. This is a real push to
-  shared state — requires explicit confirmation before it happens, not an
-  assumed step.
+- **`stow`** — clones `.dot` over public HTTPS
+  (`https://github.com/zezav-cz/.dot.git`, the repo is public — no
+  credentials) to `~/.dot` on the target, then runs the same `stow`
+  invocations `installer/steps/s06_stow.py` does: full `STOW_PACKAGES`
+  set, `--no-folding` for `STOW_NO_FOLDING`, backing up a pre-existing
+  non-symlink `~/.zshrc`, and cloning `lazy.nvim`. This **supersedes**
+  `sway-minimal`'s embedded copies with real symlinks from the cloned
+  repo — running this playbook is expected to change every file
+  `sway-minimal` created. (Originally used a generated read-only deploy
+  key; simplified once `.dot` went public.)
 - **`shell`** — oh-my-zsh + plugins (`zsh-autosuggestions`,
   `zsh-syntax-highlighting`, `zsh-completions`) + default shell, porting
   `installer/steps/s03_shell.py`'s logic. Distro-agnostic already (git
