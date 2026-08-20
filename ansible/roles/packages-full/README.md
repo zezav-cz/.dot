@@ -125,7 +125,7 @@ against the live desktop session's actual environment, not just an SSH shell.
 
 | Fedora | Ubuntu | Type | Notes |
 |---|---|---|---|
-| `fuse` | `fuse3` | apt | `fuse` exists on Ubuntu only as a transitional dummy package (`Depends: fuse3`, no real content) — installing `fuse3` directly. |
+| `fuse` | `fuse3` + `libfuse2t64` | apt | AppImages (Type-2, e.g. Obsidian) load `libfuse.so.2`, which `fuse3` does NOT provide — `libfuse2t64` is the FUSE 2 runtime on Ubuntu 24.04+ (renamed from `libfuse2`). `fuse3` kept for FUSE 3 tools. |
 | `fuse-libs` | *(dropped)* | dropped | No standalone `fuse-libs`/`libfuse3-3` apt package exists on this host (`apt-cache policy libfuse3-3` returns nothing). `fuse3` already pulls in its own runtime library dependency automatically, so a separate entry is redundant. |
 
 ## Clipboard

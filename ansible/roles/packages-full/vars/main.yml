@@ -83,9 +83,12 @@ packages_full:
   - bluez # config-tool audit: waybar config.jsonc bluetooth module `"on-click": "foot -e bluetoothctl"`
   - libnotify-bin
   - grimshot
-  # FUSE (for AppImages) - fuse3 pulls in the runtime lib automatically,
-  # no separate fuse-libs equivalent needed
+  # FUSE for AppImages: Type-2 AppImages (Obsidian, etc.) load libfuse.so.2,
+  # which fuse3 does NOT provide. libfuse2t64 is the FUSE 2 runtime on
+  # Ubuntu 24.04+ (renamed from libfuse2 in the time_t transition). fuse3 is
+  # kept for tools that use FUSE 3.
   - fuse3
+  - libfuse2t64
   # Clipboard
   - cliphist
   # SSH
