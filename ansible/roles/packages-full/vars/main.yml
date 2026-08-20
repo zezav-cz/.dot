@@ -58,6 +58,7 @@ packages_full:
   - podman
   # Networking
   - tailscale # from tailscale.com apt repo, see packages_full_repos; config: sway config `exec sleep 3 && tailscale systray`
+  - network-manager-gnome # nm-applet: clickable WiFi/network tray icon (Fedora: network-manager-applet). Autostarts via /etc/xdg/autostart/nm-applet.desktop, launched by config.d/95-xdg-desktop-autostart.conf
   # Sway / Wayland utilities
   - waybar # not in Fedora's list (Sway Spin ships it in the base image); Ubuntu needs it explicit
   - rofi # config-tool audit: sway config.d/variables.conf `$menu`/`$rofi_cmd`, $mod+d launcher, clipboard/recording pickers
