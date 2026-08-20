@@ -8,6 +8,7 @@
     - shell
     - apps
     - fonts
-    - vnotes
+    - role: vnotes
+      tags: [vnotes]
     - mcp
     - sway-portability
