@@ -2,11 +2,15 @@
 
 **Status:** Phase 2 complete — verified end-to-end from a bare Ubuntu 26.04
 reinstall on KVM 192.168.124.68 (2026-08-13): both playbooks run clean and
-idempotent from scratch, full waybar desktop renders after reboot. The
-from-scratch test surfaced and fixed a real bug — Ubuntu 26.04's default
-`sudo-rs` breaks Ansible `become` password auth; `bootstrap-auth` now
-switches the system to classic sudo first.
+idempotent from scratch, full waybar desktop renders after reboot.
 **Date:** 2026-08-11
+
+> **Prerequisites (later change):** the `bootstrap-auth` role was removed.
+> The operator now guarantees, outside Ansible (image/preseed), that the
+> target already has SSH key access and `NOPASSWD` sudo for the login user.
+> With `NOPASSWD`, Ansible `become` uses `sudo -n` (no prompt), which also
+> sidesteps Ubuntu 26.04's `sudo-rs` prompt-format incompatibility — so no
+> in-playbook sudo switch or become password is needed.
 
 ## Context
 
@@ -50,7 +54,6 @@ ansible/
   playbook-environment.yml
   inventory.yml
   roles/
-    bootstrap-auth/
     packages-base/
     greetd/
     sway-minimal/
@@ -66,16 +69,9 @@ ansible/
 
 ### `playbook-sway-base.yml`
 
-Runs against a target with only password-based SSH access initially (or
-none at all beyond that). No git, no GitHub, no repo checkout required.
+Runs against a target that already has SSH key access and `NOPASSWD` sudo
+(operator-provided). No git, no GitHub, no repo checkout required.
 
-- **`bootstrap-auth`** — the only role that uses the *old* password-based
-  access. Installs a real SSH key on the target via
-  `ansible.posix.authorized_key`, so this role and every later run can use
-  key auth instead. This is the standard Ansible pattern for taking over a
-  box that isn't key-accessible yet: bootstrap once over password, key
-  auth from then on. `NOPASSWD` sudo is left as phase 1 documented and
-  accepted for this box — only the blank-password SSH gap closes.
 - **`packages-base`** — apt-installs `sway`, `foot`, `greetd`, `tuigreet`,
   `xwayland`, `lxpolkit`. Exactly phase 1's package list.
 - **`greetd`** — writes `/etc/greetd/config.toml`
@@ -227,6 +223,5 @@ hasn't seen playbook 1.
   laptop-specific pass, as phase 1 stated.
 - Fixing `installer/config.py`'s `PACKAGES["debian"]` stub — this phase's
   package list lives independently in the Ansible role, not there.
-- Any change to the KVM's accepted blank-password/`NOPASSWD` posture
-  beyond closing the SSH gap via `bootstrap-auth` — `NOPASSWD` sudo stays,
-  per phase 1's explicit, documented decision.
+- Provisioning the target's auth prerequisites (SSH key + `NOPASSWD` sudo)
+  — these are operator-provided outside Ansible; the playbooks assume them.

@@ -1,6 +1,6 @@
 ---
 - name: Environment (full install.py parity for Ubuntu)
-  hosts: sway_hosts
+  hosts: all
   become: false
   roles:
     - packages-full
