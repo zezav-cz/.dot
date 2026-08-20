@@ -1,6 +1,7 @@
 # Install Ubuntu Sway on a server
 
-Prereqs on the target: SSH key access + `NOPASSWD` sudo for `<user>`.
+Prereqs on the target: SSH key access + `NOPASSWD` sudo for `<user>`, and a
+GitHub-authorised SSH key/agent (for cloning the private `vnotes` repo).
 Run from this `ansible/` directory. Pass the target IP with `-i '<IP>,'` (trailing comma).
 
 ```bash
@@ -13,19 +14,8 @@ ansible-playbook -i '<IP>,' -u <user> playbook-sway-base.yml
 ```
 
 ```bash
-# full desktop + dotfiles (deploy keys are two-phase)
-
-ansible-playbook -i '<IP>,' -u <user> playbook-environment.yml   # stops at .dot clone
-
-PUB=$(ssh <user>@<IP> 'cat ~/.ssh/dot_deploy.pub')
-gh repo deploy-key add /dev/stdin --repo zezav-cz/.dot --title "$(date +%F)" <<<"$PUB"
-
-ansible-playbook -i '<IP>,' -u <user> playbook-environment.yml   # stops at vnotes clone
-
-VPUB=$(ssh <user>@<IP> 'cat ~/.ssh/vnotes_deploy.pub')
-gh repo deploy-key add /dev/stdin --repo zezav-cz/vnotes --title "vnotes-$(date +%F)" <<<"$VPUB"
-
-ansible-playbook -i '<IP>,' -u <user> playbook-environment.yml   # completes
+# full desktop + dotfiles
+ansible-playbook -i '<IP>,' -u <user> playbook-environment.yml
 ```
 
 ```bash

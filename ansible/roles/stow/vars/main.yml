@@ -1,5 +1,5 @@
 ---
-stow_repo: "git@github.com:zezav-cz/.dot.git"
+stow_repo: "https://github.com/zezav-cz/.dot.git"
 stow_version: ubuntu
 stow_dest: "{{ ansible_env.HOME }}/.dot"
 stow_packages:

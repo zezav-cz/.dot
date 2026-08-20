@@ -1,39 +1,10 @@
 ---
-# Two-phase bootstrap: the deploy key below is generated ON the KVM (the
-# private key never leaves the box). The FIRST run of this role gets as far
-# as key generation and then the "Clone/update the .dot repo" task fails
-# (expected — the pubkey isn't registered with GitHub yet). From the control
-# node, register the pubkey as a read-only deploy key:
-#   PUB=$(ssh -i ~/.ssh/dot_ansible_ed25519 jan@<host> 'cat ~/.ssh/dot_deploy.pub')
-#   gh repo deploy-key add /dev/stdin --repo zezav-cz/.dot \
-#     --title "kvm-$(date +%Y%m%d)" --read-only <<<"$PUB"
-#   gh repo deploy-key list --repo zezav-cz/.dot
-# Then re-run the role/playbook; the clone succeeds.
-
-- name: Generate read-only deploy key on the KVM
-  community.crypto.openssh_keypair:
-    path: "{{ ansible_env.HOME }}/.ssh/dot_deploy"
-    type: ed25519
-    comment: "dot-deploy@ubu"
-
-- name: Configure ssh to use the deploy key for github.com
-  ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.ssh/config"
-    create: true
-    mode: '0600'
-    marker: "# {mark} ANSIBLE dot deploy key"
-    block: |
-      Host github.com
-        IdentityFile ~/.ssh/dot_deploy
-        IdentitiesOnly yes
-        StrictHostKeyChecking accept-new
-
+# .dot is a public repo — cloned over HTTPS, no credentials needed.
 - name: Clone/update the .dot repo
   ansible.builtin.git:
     repo: "{{ stow_repo }}"
     dest: "{{ stow_dest }}"
     version: "{{ stow_version }}"
-    accept_hostkey: true
     update: true
 
 - name: Stat ~/.zshrc

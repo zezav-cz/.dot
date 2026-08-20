@@ -1,44 +1,9 @@
 ---
-# vnotes needs its own deploy key. GitHub deploy keys must be globally
-# unique: the dot_deploy key from the stow role (Task 9, already registered
-# on zezav-cz/.dot) cannot be re-registered on zezav-cz/vnotes -- GitHub
-# rejects it with "key is already in use". A second keypair plus a
-# dedicated SSH host alias avoids that clash without touching the
-# stow role's github.com config block.
-#
-# Two-phase bootstrap: the FIRST run generates the key and then the
-# "Clone/update vnotes repo" task fails (expected -- the pubkey isn't
-# registered with GitHub yet). From the control node, register it as a
-# read-only deploy key:
-#   PUB=$(ssh -i ~/.ssh/dot_ansible_ed25519 jan@<host> 'cat ~/.ssh/vnotes_deploy.pub')
-#   gh repo deploy-key add /dev/stdin --repo zezav-cz/vnotes \
-#     --title "kvm-ubu-vnotes-$(date +%Y%m%d)" <<<"$PUB"
-#   gh repo deploy-key list --repo zezav-cz/vnotes
-# Then re-run the role/playbook; the clone succeeds.
-
-- name: Generate read-only deploy key for vnotes on the KVM
-  community.crypto.openssh_keypair:
-    path: "{{ ansible_env.HOME }}/.ssh/vnotes_deploy"
-    type: ed25519
-    comment: "vnotes-deploy@ubu"
-
-- name: Configure ssh alias to use the vnotes deploy key
-  ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.ssh/config"
-    create: true
-    mode: '0600'
-    marker: "# {mark} ANSIBLE vnotes deploy key"
-    block: |
-      Host github.com-vnotes
-        HostName github.com
-        User git
-        IdentityFile ~/.ssh/vnotes_deploy
-        IdentitiesOnly yes
-        StrictHostKeyChecking accept-new
-
+# vnotes is private, cloned over SSH using the system's existing SSH key
+# (the operator guarantees a GitHub-authorised key + agent on the target).
 - name: Clone/update vnotes repo
   ansible.builtin.git:
-    repo: "git@github.com-vnotes:zezav-cz/vnotes.git"
+    repo: "git@github.com:zezav-cz/vnotes.git"
     dest: "{{ ansible_env.HOME }}/vnotes"
     version: main
     accept_hostkey: true
