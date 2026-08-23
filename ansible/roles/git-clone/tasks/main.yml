@@ -1,0 +1,52 @@
+---
+# SSH-only cloning for zezav repos: the URL is composed from a repo slug,
+# never hardcoded. Auth comes from whatever agent the target can reach --
+# the local ssh-agent, or the controller's agent forwarded with
+# --ssh-extra-args='-o ForwardAgent=yes'. There is no HTTPS fallback by
+# design; a missing key fails fast with instructions instead of half-working.
+
+- name: Probe SSH auth to {{ git_clone_host }}
+  ansible.builtin.command:
+    cmd: >-
+      ssh -T -o BatchMode=yes -o StrictHostKeyChecking=accept-new
+      git@{{ git_clone_host }}
+  register: git_clone_ssh_probe
+  changed_when: false
+  failed_when: false
+  when: git_clone_ssh_ok is not defined
+
+- name: Cache the SSH probe result for later clones in this run
+  ansible.builtin.set_fact:
+    git_clone_ssh_ok: >-
+      {{ 'successfully authenticated' in (git_clone_ssh_probe.stderr | default('')) }}
+  when: git_clone_ssh_ok is not defined
+
+- name: Fail when no GitHub-authorised SSH key is reachable
+  ansible.builtin.fail:
+    msg: >-
+      SSH auth to {{ git_clone_host }} failed on the target. Either load a
+      GitHub-authorised key into the target's ssh-agent, or forward your
+      workstation's agent:
+      ansible-playbook --ssh-extra-args='-o ForwardAgent=yes' ...
+  when: not (git_clone_ssh_ok | bool)
+
+# An older run may have left a different (e.g. HTTPS) origin behind; the git
+# module below fetches over origin, so reconcile it to SSH first.
+- name: Check for an existing clone at {{ git_clone_dest }}
+  ansible.builtin.stat:
+    path: "{{ git_clone_dest }}/.git"
+  register: git_clone_git_dir
+
+- name: Point an existing clone at the SSH remote
+  ansible.builtin.command:
+    cmd: "git -C {{ git_clone_dest }} remote set-url origin {{ git_clone_url }}"
+  when: git_clone_git_dir.stat.exists
+  changed_when: false
+
+- name: Clone/update {{ git_clone_repo }}
+  ansible.builtin.git:
+    repo: "{{ git_clone_url }}"
+    dest: "{{ git_clone_dest }}"
+    version: "{{ git_clone_version }}"
+    accept_hostkey: true
+    update: "{{ git_clone_update }}"

@@ -298,7 +298,7 @@ STOW_PACKAGES = [
 ]
 # vscode is no-folding: ~/.config/Code/User/ holds heavy runtime state
 # (workspaceStorage, globalStorage, ...) that must stay outside the repo
-STOW_NO_FOLDING = ["my-scripts", "pgcli", "vscode"]
+STOW_NO_FOLDING = ["claude", "my-scripts", "pgcli", "vscode"]
 
 # ──────────────────────────────────────────────
 # Neovim

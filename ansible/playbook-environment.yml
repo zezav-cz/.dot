@@ -10,5 +10,7 @@
     - fonts
     - role: vnotes
       tags: [vnotes]
+    - role: dev-repos
+      tags: [dev-repos]
     - mcp
     - sway-portability

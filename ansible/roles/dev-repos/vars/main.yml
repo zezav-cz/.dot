@@ -1,0 +1,9 @@
+---
+dev_repos_org: zezav-cz
+dev_repos_root: "{{ ansible_env.HOME }}/dev/zezav"
+dev_repos_list:
+  - public
+  - secrets
+  - my-tools
+  - zezav-terraform
+  - zezav-bolt

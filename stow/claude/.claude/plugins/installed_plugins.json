@@ -1,0 +1,164 @@
+{
+  "version": 2,
+  "plugins": {
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-06T21:46:29.458Z",
+        "lastUpdated": "2026-08-20T20:25:25.182Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "superpowers@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/superpowers/6.3.0",
+        "version": "6.3.0",
+        "installedAt": "2026-07-06T21:46:31.011Z",
+        "lastUpdated": "2026-08-13T07:06:12.360Z",
+        "gitCommitSha": "d884ae04edebef577e82ff7c4e143debd0bbec99"
+      }
+    ],
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/code-review/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-06T21:46:31.061Z",
+        "lastUpdated": "2026-08-20T20:25:25.181Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "skill-creator@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-06T21:46:31.113Z",
+        "lastUpdated": "2026-08-20T20:25:25.185Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "code-simplifier@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/code-simplifier/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-06T21:46:31.163Z",
+        "lastUpdated": "2026-07-06T21:46:31.163Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "github@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/github/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-06T21:46:31.206Z",
+        "lastUpdated": "2026-08-20T20:25:25.180Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "claude-md-management@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-06T21:46:31.253Z",
+        "lastUpdated": "2026-07-06T21:46:31.253Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "typescript-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/typescript-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-06T21:46:31.305Z",
+        "lastUpdated": "2026-07-06T21:46:31.305Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "claude-code-setup@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/claude-code-setup/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-06T21:46:31.356Z",
+        "lastUpdated": "2026-07-06T21:46:31.356Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "telegram@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/telegram/0.0.7",
+        "version": "0.0.7",
+        "installedAt": "2026-07-06T21:46:31.410Z",
+        "lastUpdated": "2026-08-13T07:06:10.926Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "playground@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/playground/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-06T21:46:31.469Z",
+        "lastUpdated": "2026-08-20T20:25:25.183Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "ruby-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/ruby-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-06T21:46:31.556Z",
+        "lastUpdated": "2026-07-06T21:46:31.556Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "context7@claude-plugins-official": [
+      {
+        "scope": "project",
+        "projectPath": "/home/jan/.dot",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/context7/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-06T21:57:11.922Z",
+        "lastUpdated": "2026-08-20T20:25:25.181Z",
+        "gitCommitSha": "b47ef13563948b2e5fa99451b3ead4f670a3bef8"
+      }
+    ],
+    "engineering-skills@claude-code-skills": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-code-skills/engineering-skills/2.9.0",
+        "version": "2.9.0",
+        "installedAt": "2026-07-20T08:23:32.134Z",
+        "lastUpdated": "2026-07-20T08:23:32.134Z",
+        "gitCommitSha": "aa8d778811a557a2c28ccadda4cf3d0bd028a4cc"
+      }
+    ],
+    "gitlab@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/gitlab/unknown",
+        "version": "unknown",
+        "installedAt": "2026-07-27T11:03:51.532Z",
+        "lastUpdated": "2026-08-20T20:25:25.181Z"
+      }
+    ],
+    "gopls-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/jan/.claude/plugins/cache/claude-plugins-official/gopls-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-07-29T11:32:02.659Z",
+        "lastUpdated": "2026-07-29T11:32:02.659Z"
+      }
+    ]
+  }
+}

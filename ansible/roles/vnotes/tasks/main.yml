@@ -1,10 +1,10 @@
 ---
-# vnotes is private, cloned over SSH using the system's existing SSH key
-# (the operator guarantees a GitHub-authorised key + agent on the target).
+# vnotes is a private repo; the git-clone role handles SSH auth (local
+# agent or forwarded agent). Skip entirely with --skip-tags vnotes.
 - name: Clone/update vnotes repo
-  ansible.builtin.git:
-    repo: "git@github.com:zezav-cz/vnotes.git"
-    dest: "{{ ansible_env.HOME }}/vnotes"
-    version: main
-    accept_hostkey: true
-    update: true
+  ansible.builtin.include_role:
+    name: git-clone
+  vars:
+    git_clone_repo: "zezav-cz/vnotes"
+    git_clone_dest: "{{ ansible_env.HOME }}/vnotes"
+    git_clone_version: main

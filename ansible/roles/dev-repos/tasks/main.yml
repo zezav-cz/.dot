@@ -1,0 +1,12 @@
+---
+# Working dev repos under ~/dev/zezav, cloned over SSH via the git-clone
+# role. update: false -- these hold active work, so re-runs must never
+# touch an existing checkout (no fetch, no branch switch).
+- name: Clone dev repos
+  ansible.builtin.include_role:
+    name: git-clone
+  vars:
+    git_clone_repo: "{{ dev_repos_org }}/{{ item }}"
+    git_clone_dest: "{{ dev_repos_root }}/{{ item }}"
+    git_clone_update: false
+  loop: "{{ dev_repos_list }}"

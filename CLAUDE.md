@@ -69,7 +69,7 @@ stow/sway/.config/sway/      ->  ~/.config/sway/
 stow/my-scripts/.local/bin/  ->  ~/.local/bin/
 ```
 
-The installer runs `stow -d stow -t $HOME <pkg>` from the repo root. Registered packages: `git`, `mise`, `nvim`, `rofi`, `ssh-agent`, `sway`, `systemd`, `tmux`, `zsh`, `foot`, `k9s`, `nwg-displays`. `my-scripts`, `pgcli` and `vscode` are listed in `STOW_NO_FOLDING` (uses `stow --no-folding`) so the shared target directory does not itself become a symlink.
+The installer runs `stow -d stow -t $HOME <pkg>` from the repo root. Registered packages: `git`, `mise`, `nvim`, `rofi`, `ssh-agent`, `sway`, `systemd`, `tmux`, `zsh`, `foot`, `k9s`, `nwg-displays`. `claude`, `my-scripts`, `pgcli` and `vscode` are listed in `STOW_NO_FOLDING` (uses `stow --no-folding`) so the shared target directory does not itself become a symlink.
 
 When adding a new config, create its stow-compatible directory structure under a new subdirectory of `stow/`, then add it to `STOW_PACKAGES` or `STOW_NO_FOLDING` in `installer/config.py`.
 

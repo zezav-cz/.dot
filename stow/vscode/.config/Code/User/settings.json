@@ -262,7 +262,6 @@
   },
   "terraform.languageServer.terraform.path": "mise exec -- tofu",
   "window.autoDetectColorScheme": true,
-  "workbench.preferredDarkColorTheme": "Gruvbox Dark Hard",
   "workbench.preferredHighContrastLightColorTheme": "Claude Code Light",
   "githubPullRequests.pullBranch": "never",
   "C_Cpp.default.cppStandard": "c++23",

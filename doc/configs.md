@@ -153,6 +153,20 @@ sidebar trees). Stowed with `--no-folding` so VSCode's runtime state
 
 Files: `~/.config/Code/User/settings.json`, `~/.config/Code/User/keybindings.json`
 
+## claude
+
+Claude Code user-level configuration. Only a curated subset of `~/.claude/`
+is tracked -- global instructions (`CLAUDE.md`), `settings.json` (model,
+hooks, statusline, enabled plugins, marketplaces), custom `agents/`,
+`skills/` and the plugin registry (`plugins/installed_plugins.json`,
+`plugins/known_marketplaces.json`). Stowed with `--no-folding` so runtime
+state (`projects/`, `history.jsonl`, `.credentials.json`, caches, ...) stays
+local to `~/.claude/` and out of the repo.
+
+Files: `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, `~/.claude/agents/`,
+`~/.claude/skills/`, `~/.claude/plugins/installed_plugins.json`,
+`~/.claude/plugins/known_marketplaces.json`
+
 ## Claude Code MCP servers
 
 Not a stow package -- MCP servers (sequential-thinking, vnotes filesystem,

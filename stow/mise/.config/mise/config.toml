@@ -41,6 +41,8 @@ uv = "latest"
 "pipx:git-fame" = "latest"
 yarn = "4"
 kind = "latest"
+yazi = "26"
+"pipx:b2" = "latest"
 
 [settings]
 experimental = true
