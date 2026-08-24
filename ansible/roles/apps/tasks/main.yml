@@ -73,6 +73,71 @@
   loop: "{{ apps }}"
   loop_control: { label: "{{ item.name }}" }
 
+# --- Telegram Desktop -------------------------------------------------------
+# Not an AppImage: the release tarball unpacks to Telegram/Telegram. Installed
+# under ~/.local/opt with a version marker so re-runs are no-ops and upgrades
+# happen only when telegram_version is bumped. Note: installed in a writable
+# dir, Telegram will also self-update in place; the marker then just records
+# the version ansible last installed.
+- name: Check installed Telegram version marker
+  ansible.builtin.stat:
+    path: "{{ opt_dir }}/Telegram/.ansible-version-{{ telegram_version }}"
+  register: telegram_marker
+
+- name: Ensure ~/.local/opt exists
+  ansible.builtin.file:
+    path: "{{ opt_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Download Telegram release tarball
+  ansible.builtin.get_url:
+    url: "{{ telegram_url }}"
+    dest: "/tmp/tsetup.{{ telegram_version }}.tar.xz"
+    mode: '0644'
+  when: not telegram_marker.stat.exists
+
+- name: Unpack Telegram into ~/.local/opt
+  ansible.builtin.unarchive:
+    src: "/tmp/tsetup.{{ telegram_version }}.tar.xz"
+    dest: "{{ opt_dir }}"
+    remote_src: true
+  when: not telegram_marker.stat.exists
+
+- name: Stamp installed Telegram version
+  ansible.builtin.file:
+    path: "{{ opt_dir }}/Telegram/.ansible-version-{{ telegram_version }}"
+    state: touch
+    mode: '0644'
+  when: not telegram_marker.stat.exists
+
+- name: Symlink telegram into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ opt_dir }}/Telegram/Telegram"
+    dest: "{{ appimage_dir }}/telegram"
+    state: link
+
+- name: Download Telegram icon (cosmetic, never fatal)
+  ansible.builtin.get_url:
+    url: "https://telegram.org/img/t_logo.png"
+    dest: "{{ icon_dir }}/telegram.png"
+    mode: '0644'
+  failed_when: false
+
+- name: Install Telegram desktop entry
+  ansible.builtin.template:
+    src: app.desktop.j2
+    dest: "{{ desktop_dir }}/telegram.desktop"
+    mode: '0644'
+  vars:
+    item:
+      name: telegram
+      display_name: Telegram
+      icon_url: "https://telegram.org/img/t_logo.png"
+      categories: "Network;InstantMessaging;"
+      wm_class: TelegramDesktop
+# ----------------------------------------------------------------------------
+
 - name: Mask dunst (prevents it replacing swaync)
   ansible.builtin.systemd:
     name: dunst.service

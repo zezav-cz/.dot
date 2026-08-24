@@ -1,0 +1,12 @@
+# Session target started by sway (see sway config.d/90-bar.conf). Binds the
+# sway session into the systemd user manager: starting this activates
+# graphical-session.target and pulls in the session services listed below --
+# for sway sessions only, so units like waybar never launch under GNOME/GDM
+# (where they crash-loop for lack of wlr-layer-shell).
+[Unit]
+Description=sway compositor session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+Wants=waybar.service

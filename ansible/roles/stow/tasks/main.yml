@@ -1,4 +1,21 @@
 ---
+# Running this play locally from inside the ~/.dot checkout makes the clone a
+# self-update: git would refuse on any uncommitted change and would hard-switch
+# the branch out from under the working tree. In that case the checkout we are
+# standing in IS the source of truth, so skip the clone and stow from it.
+# Remote runs (ssh connection) always clone -- playbook_dir there is the
+# controller's path, never the target's.
+- name: Detect whether the play runs from the ~/.dot checkout itself
+  ansible.builtin.set_fact:
+    stow_self_hosted: >-
+      {{ (ansible_connection | default('ssh')) == 'local'
+         and playbook_dir.startswith(stow_dest ~ '/') }}
+
+- name: Report that the local checkout is used as-is
+  ansible.builtin.debug:
+    msg: "Running from {{ stow_dest }} itself -- skipping clone, stowing the working tree as-is."
+  when: stow_self_hosted | bool
+
 - name: Clone/update the .dot repo
   ansible.builtin.include_role:
     name: git-clone
@@ -6,22 +23,7 @@
     git_clone_repo: "{{ stow_repo }}"
     git_clone_dest: "{{ stow_dest }}"
     git_clone_version: "{{ stow_version }}"
-
-- name: Stat ~/.zshrc
-  ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.zshrc"
-  register: zshrc_stat
-
-- name: Back up a non-symlink ~/.zshrc
-  ansible.builtin.command:
-    cmd: "mv {{ ansible_env.HOME }}/.zshrc {{ ansible_env.HOME }}/.zshrc.bak.{{ ansible_date_time.epoch }}"
-  when: zshrc_stat.stat.exists and zshrc_stat.stat.isreg and not zshrc_stat.stat.islnk
-  changed_when: true
-  # Guard: only move a real file. A stowed .zshrc is a symlink and must be
-  # left alone on re-runs so this stays idempotent. changed_when: true is
-  # correct here (not a lint suppression) — the `when:` already restricts
-  # this task to the one case where it truly performs a change (moving a
-  # real file out of the way); it can never run as a no-op.
+  when: not (stow_self_hosted | bool)
 
 - name: Stat ~/.config/sway
   ansible.builtin.stat:
@@ -39,22 +41,53 @@
   # on re-runs — otherwise this would tear it down and force a needless
   # relink every time, breaking idempotency.
 
-- name: Stat Claude Code files the claude package manages
+# Any pre-existing REAL file where a stow package wants to place a symlink
+# aborts the whole package ("neither a link nor a directory"). Rather than
+# hand-listing every such file (~/.zshrc, ~/.config/git/ignore, the files
+# Claude Code writes on first run...), ask stow itself: a --simulate pass
+# reports every conflict, and each conflicting regular file is moved aside
+# to <path>.bak.<epoch>. Idempotent: once stowed these are symlinks, which
+# stow accepts, so the simulation comes back clean on re-runs.
+- name: Simulate stowing folded packages to discover conflicting targets
+  ansible.builtin.command:
+    cmd: "stow -d {{ stow_dest }}/stow -t {{ ansible_env.HOME }} --simulate --restow {{ item }}"
+  loop: "{{ stow_packages }}"
+  register: stow_simulate_folded
+  changed_when: false
+  failed_when: false
+
+- name: Simulate stowing no-folding packages to discover conflicting targets
+  ansible.builtin.command:
+    cmd: "stow -d {{ stow_dest }}/stow -t {{ ansible_env.HOME }} --simulate --no-folding --restow {{ item }}"
+  loop: "{{ stow_no_folding }}"
+  register: stow_simulate_nofold
+  changed_when: false
+  failed_when: false
+
+- name: Collect conflicting target paths
+  ansible.builtin.set_fact:
+    stow_conflict_paths: >-
+      {{ (stow_simulate_folded.results + stow_simulate_nofold.results)
+         | map(attribute='stderr') | join('\n')
+         | regex_findall('over existing target ([^ ]+) since')
+         | unique }}
+
+- name: Stat conflicting targets
   ansible.builtin.stat:
     path: "{{ ansible_env.HOME }}/{{ item }}"
-  loop: "{{ claude_stow_conflicts }}"
-  register: claude_stats
+  loop: "{{ stow_conflict_paths }}"
+  register: stow_conflict_stats
 
-- name: Back up non-symlink Claude Code files so stow can link
+- name: Back up conflicting regular files so stow can link
   ansible.builtin.command:
     cmd: "mv {{ item.stat.path }} {{ item.stat.path }}.bak.{{ ansible_date_time.epoch }}"
-  loop: "{{ claude_stats.results }}"
+  loop: "{{ stow_conflict_stats.results }}"
   loop_control:
     label: "{{ item.item }}"
   when: item.stat.exists and item.stat.isreg and not item.stat.islnk
   changed_when: true
-  # Same guard pattern as ~/.zshrc above: only a real file is moved; once
-  # stowed these are symlinks and are left alone on re-runs.
+  # changed_when: true is correct (not a lint suppression) -- the `when:`
+  # already restricts this to the one case where it truly changes something.
 
 - name: Stow folded packages
   ansible.builtin.command:

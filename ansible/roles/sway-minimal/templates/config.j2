@@ -7,4 +7,11 @@ include $HOME/.config/sway/config.d/inputs.conf
 include $HOME/.config/sway/config.d/custom-keymap.conf
 include $HOME/.config/sway/modes.d/*.conf
 
+# Push graphical-session env into the systemd user bus and the D-Bus
+# activation environment; without it xdg-desktop-portal-gtk cannot open the
+# display and every portal query blocks for ~25s (this is what stops waybar
+# from drawing a bar on the full desktop).
+exec_always systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+exec_always dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+
 exec lxpolkit

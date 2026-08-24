@@ -6,8 +6,9 @@ Documentation=man:ssh-agent(1) man:ssh-add(1)
 Type=simple
 # %t -> /run/user/<uid>
 Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
-# Fedora ships askpass under /usr/libexec/openssh/; /usr/bin/ssh-askpass doesn't exist.
-Environment=SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass
+# Askpass paths differ per distro (Fedora: /usr/libexec/openssh/, Ubuntu:
+# /usr/lib/openssh/ or /usr/bin/ssh-askpass); the shim picks whichever exists.
+Environment=SSH_ASKPASS=%h/.local/bin/ssh-askpass-portable
 Environment=SSH_ASKPASS_REQUIRE=prefer
 ExecStart=/usr/bin/ssh-agent -D -a $SSH_AUTH_SOCK
 # Wait until the socket is up before loading keys.

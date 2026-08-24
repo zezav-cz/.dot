@@ -1,0 +1,17 @@
+#!/bin/sh
+# Distro-portable SSH_ASKPASS shim, used by ssh-agent.service. The keys are
+# loaded with confirm-on-use (ssh-add -c), so every signature needs a working
+# askpass in the *agent's* environment -- a wrong path means "agent refused
+# operation" on each SSH auth. Fedora ships the GTK askpass under
+# /usr/libexec/openssh/, Debian/Ubuntu under /usr/lib/openssh/
+# (ssh-askpass-gnome) or the alternatives-managed /usr/bin/ssh-askpass.
+# Exec the first one that exists.
+for p in \
+  /usr/libexec/openssh/gnome-ssh-askpass \
+  /usr/lib/openssh/gnome-ssh-askpass \
+  /usr/bin/ssh-askpass
+do
+  [ -x "$p" ] && exec "$p" "$@"
+done
+echo "ssh-askpass-portable: no askpass helper found on this system" >&2
+exit 1

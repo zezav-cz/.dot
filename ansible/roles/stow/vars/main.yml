@@ -20,12 +20,5 @@ stow_no_folding:
   - my-scripts
   - pgcli
   - vscode
-# Files Claude Code creates on first run that the claude package now owns;
-# real (non-symlink) copies must be moved aside before stow can link.
-claude_stow_conflicts:
-  - .claude/CLAUDE.md
-  - .claude/settings.json
-  - .claude/plugins/installed_plugins.json
-  - .claude/plugins/known_marketplaces.json
 lazy_nvim_repo: "https://github.com/folke/lazy.nvim.git"
 lazy_nvim_path: "{{ ansible_env.HOME }}/.local/share/nvim/lazy/lazy.nvim"

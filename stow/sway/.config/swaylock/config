@@ -1,5 +1,6 @@
-image=~/.config/swaylock/fsociaty.jpg
-scaling=fill
+# No wallpaper on the lock screen -- swaylock paints the solid `color=` below
+# (gruvbox dark hard) across every output. The old image is still in the repo
+# at ~/.config/swaylock/fsociaty.jpg if it is ever wanted back.
 show-failed-attempts
 show-keyboard-layout
 

@@ -2,6 +2,11 @@
 appimage_dir: "{{ ansible_env.HOME }}/.local/bin"
 desktop_dir: "{{ ansible_env.HOME }}/.local/share/applications"
 icon_dir: "{{ ansible_env.HOME }}/.local/share/icons"
+opt_dir: "{{ ansible_env.HOME }}/.local/opt"
+# Telegram ships as a tar.xz (not an AppImage); pinned to a GitHub release.
+# Bump the version here to upgrade on the next playbook run.
+telegram_version: "7.1.1"
+telegram_url: "https://github.com/telegramdesktop/tdesktop/releases/download/v{{ telegram_version }}/tsetup.{{ telegram_version }}.tar.xz"
 apps:
   - name: obsidian
     display_name: Obsidian

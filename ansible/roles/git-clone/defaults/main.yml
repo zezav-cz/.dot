@@ -3,8 +3,10 @@
 #   git_clone_repo    -- repo slug, e.g. "zezav-cz/.dot"
 #   git_clone_dest    -- checkout path
 # Optional:
-#   git_clone_version -- branch/tag/sha ("default" = the remote's default branch)
+#   git_clone_version -- branch/tag/sha ("HEAD" = the remote's default branch)
 git_clone_host: github.com
-git_clone_version: default
+# HEAD, not a literal branch name: the git module resolves it to whatever the
+# remote's default branch is. ("default" is not a git pathspec -- checkout fails.)
+git_clone_version: HEAD
 git_clone_update: true
 git_clone_url: "git@{{ git_clone_host }}:{{ git_clone_repo }}.git"

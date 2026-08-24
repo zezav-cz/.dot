@@ -1,6 +1,6 @@
 ---
 - name: Environment (full install.py parity for Ubuntu)
-  hosts: all
+  hosts: [all, localhost]
   become: false
   roles:
     - packages-full

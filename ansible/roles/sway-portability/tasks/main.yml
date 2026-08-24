@@ -7,6 +7,61 @@
 # stow-delivery check here. Instead resolve the real path and confirm it
 # lands inside the repo clone, which is true under folded or per-file
 # stowing alike.
+# A sway session that is already running keeps whatever systemd/D-Bus
+# environment it started with. If it came up before the config below was in
+# place (e.g. the bare-server phase-1 config), WAYLAND_DISPLAY is missing from
+# the systemd user manager, xdg-desktop-portal-gtk is stuck in a failed state
+# ("cannot open display"), and waybar hangs on its portal query instead of
+# drawing a bar. Repair the live session here so a playbook re-run fixes it
+# without a re-login; the sway config carries the permanent fix for new
+# sessions.
+- name: Look for a running sway IPC socket
+  ansible.builtin.find:
+    paths: "/run/user/{{ ansible_user_uid }}"
+    patterns: "sway-ipc.*.sock"
+    file_type: any
+  register: sway_ipc_socket
+
+- name: Look for the wayland display socket
+  ansible.builtin.find:
+    paths: "/run/user/{{ ansible_user_uid }}"
+    patterns: "wayland-[0-9]"
+    use_regex: false
+    file_type: any
+  register: wayland_socket
+
+- name: Read the systemd user manager environment
+  ansible.builtin.command:
+    cmd: systemctl --user show-environment
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  register: systemd_user_env
+  changed_when: false
+  failed_when: false
+
+- name: Push the graphical-session env into systemd and D-Bus, and clear failed portals
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      systemctl --user import-environment WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+      dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+      systemctl --user reset-failed xdg-desktop-portal.service xdg-desktop-portal-gtk.service 2>/dev/null || true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+    WAYLAND_DISPLAY: "{{ (wayland_socket.files | first).path | basename }}"
+    SWAYSOCK: "{{ (sway_ipc_socket.files | first).path }}"
+    XDG_CURRENT_DESKTOP: "sway:wlroots"
+    XDG_SESSION_TYPE: wayland
+  when:
+    - sway_ipc_socket.matched > 0
+    - wayland_socket.matched > 0
+    - "'WAYLAND_DISPLAY=' not in (systemd_user_env.stdout | default(''))"
+  changed_when: true
+  # changed_when: true is correct (not a lint suppression): the `when:` above
+  # already restricts this to the case where the env is genuinely missing.
+
 - name: Assert repo-owned bar fragment is present via stow
   ansible.builtin.stat:
     path: "{{ ansible_env.HOME }}/.config/sway/config.d/90-bar.conf"
@@ -33,3 +88,42 @@
   changed_when: false
   register: sway_validate
   failed_when: sway_validate.rc != 0
+
+# Ubuntu's waybar/swaync packages enable their user units for *every*
+# graphical session (deb-systemd-helper links in
+# /etc/systemd/user/graphical-session.target.wants). Under GNOME/GDM --
+# greeter included -- waybar crash-loops because the compositor has no
+# wlr-layer-shell. Drop the global enablement: the stowed sway-session.target
+# pulls waybar in for sway sessions only, and swaync is started by the sway
+# config's `exec swaync` (globally enabled it would double-start once
+# graphical-session.target activates).
+- name: Disable global (all-users) autostart of waybar and swaync
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: false
+    scope: global
+  loop:
+    - waybar.service
+    - swaync.service
+  become: true
+
+# Live-session repair, same spirit as the env push above: make waybar come up
+# on a playbook re-run without a re-login. New sessions get this from
+# config.d/90-bar.conf (env import + `systemctl --user restart
+# sway-session.target`).
+- name: Ensure waybar is up in the live sway session
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      systemctl --user daemon-reload
+      if ! systemctl --user is-active --quiet waybar.service; then
+        systemctl --user reset-failed waybar.service 2>/dev/null || true
+        systemctl --user restart sway-session.target
+        echo restarted
+      fi
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  register: waybar_live
+  changed_when: "'restarted' in waybar_live.stdout"
+  when: sway_ipc_socket.matched > 0

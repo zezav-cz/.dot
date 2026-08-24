@@ -4,5 +4,5 @@
   become: false
   roles:
     - packages-base
-    - greetd
+#    - greetd
     - sway-minimal

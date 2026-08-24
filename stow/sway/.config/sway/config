@@ -7,10 +7,15 @@ include $HOME/.config/sway/config.d/inputs.conf
 include $HOME/.config/sway/config.d/custom-keymap.conf
 include $HOME/.config/sway/modes.d/*.conf
 
-# Push graphical-session env into the systemd user bus so user services
-# (e.g. ssh-agent with -c confirm) can spawn askpass windows. Restart
-# ssh-agent so it picks up WAYLAND_DISPLAY/DISPLAY.
-exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+# Push graphical-session env into the systemd user bus AND the D-Bus
+# activation environment, so user services (e.g. ssh-agent with -c confirm,
+# which spawns askpass windows) and D-Bus-activated services (notably
+# xdg-desktop-portal + its gtk backend) can reach the display. Without the
+# D-Bus half, xdg-desktop-portal-gtk exits with "cannot open display" and
+# every portal query blocks for ~25s. exec_always so `swaymsg reload`
+# re-asserts it. Restart ssh-agent so it picks up WAYLAND_DISPLAY/DISPLAY.
+exec_always systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+exec_always dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
 exec systemctl --user restart ssh-agent.service
 
 exec gammastep -o
