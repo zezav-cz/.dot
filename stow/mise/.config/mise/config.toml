@@ -2,51 +2,55 @@
 GOPRIVATE = "github.com/zezav-cz/*"
 
 [tools]
-asciidoctorj = "latest"
-cilium-cli = { version = "0.18", postinstall = "cilium completion zsh > ~/.zfunc/_cilium" }
-cilium-hubble = { version = "1.18", postinstall = "hubble completion zsh > ~/.zfunc/_hubble" }
-fd = "latest"
-flux2 = "2.8"
-"gem:rake" = "latest"
-gh = { version = "2", postinstall = "gh completion -s zsh > ~/.zfunc/_gh" }
-glab = { version = "latest", postinstall = "glab completion -s zsh > ~/.zfunc/_glab" }
-"go:github.com/ankitpokhrel/jira-cli/cmd/jira" = { version = "latest", postinstall = "jira completion zsh > ~/.zfunc/_jira" }
-helm = "4"
-k9s = "0.50"
-krew = "0.4"
-kubectl = "1.34"
-kubectx = "latest"
-kubens = "latest"
-mc = "latest"
-neovim = "0.11.1"
-node = "latest"
-pandoc = "latest"
-"pipx:pgcli" = "latest"
-python = "latest"
-task = { version = "3", postinstall = "task --completion zsh > ~/.zfunc/_task" }
-usage = "latest"
-yq = { version = "latest", postinstall = "yq shell-completion zsh > ~/.zfunc/_yq" }
-go = "1.25"
-"go:github.com/zezav-cz/vn/cmd/vn" = { version = "v0.0.0-20260419170146-42cfc60b41b7", postinstall = "vn completion zsh > ~/.zfunc/_vn" }
-lazygit = "latest"
-aws = { version = "2.35", symlink_bins = "true" }
-fx = "latest"
-"npm:aws-cdk" = "2"
-"npm:ccstatusline" = "2"
-gcloud = "573"
-terraform-docs = "0.24"
-pipx = "latest"
-"go:github.com/bettercap/bettercap/v2" = "latest"
-uv = "latest"
-"pipx:git-fame" = "latest"
-yarn = "4"
-kind = "latest"
-yazi = "26"
-"pipx:b2" = "latest"
+# Migrated to Nix/home-manager (see ~/.dot/home.nix) — kept here commented
+# out for reference. Uninstalled from mise; provided via ~/.nix-profile/bin.
+# asciidoctorj = "latest"
+# cilium-cli = { version = "0.18", postinstall = "cilium completion zsh > ~/.zfunc/_cilium" }
+# cilium-hubble = { version = "1.18", postinstall = "hubble completion zsh > ~/.zfunc/_hubble" }
+# fd = "latest"
+# flux2 = "2.8"
+# "gem:rake" = "latest"
+# gh = { version = "2", postinstall = "gh completion -s zsh > ~/.zfunc/_gh" }
+# glab = { version = "1.114", postinstall = "glab completion -s zsh > ~/.zfunc/_glab" }
+# "go:github.com/ankitpokhrel/jira-cli/cmd/jira" = { version = "latest", postinstall = "jira completion zsh > ~/.zfunc/_jira" }
+# "go:github.com/peak/s5cmd/v2" = { version = "2.3", postinstall = "s5cmd --install-completion > ~/.zfunc/_s5cmd" }
+# helm = "4"
+# k9s = "0.50"
+# krew = "0.4"
+# kubectl = "1.34"
+# kubectx = "latest"
+# kubens = "latest"
+# mc = "latest"
+# neovim = "0.11.1"
+# node = "latest"
+# pandoc = "latest"
+# "pipx:pgcli" = "latest"
+# python = "latest"
+# task = { version = "3", postinstall = "task --completion zsh > ~/.zfunc/_task" }
+# usage = "latest"
+# yq = { version = "latest", postinstall = "yq shell-completion zsh > ~/.zfunc/_yq" }
+# go = "1.25"
+# "go:github.com/zezav-cz/vn/cmd/vn" = { version = "v0.0.0-20260419170146-42cfc60b41b7", postinstall = "vn completion zsh > ~/.zfunc/_vn" }
+# lazygit = "latest"
+# aws = { version = "2.35", symlink_bins = "true" }
+# fx = "latest"
+# "npm:aws-cdk" = "2"
+# "npm:ccstatusline" = "2"
+# gcloud = "573"
+# terraform-docs = "0.24"
+# pipx = "latest"
+# "go:github.com/bettercap/bettercap/v2" = "latest"
+# uv = "latest"
+# "pipx:git-fame" = "latest"
+# yarn = "4"
+# kind = "latest"
+# yazi = "26"
+# "pipx:b2" = "latest"
+# argo = "latest"
+# zoxide = "0.10"
+# dive = "latest"
 
 [settings]
 experimental = true
 env_shell_expand = true
 lockfile = true
-
-

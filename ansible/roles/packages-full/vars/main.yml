@@ -1,10 +1,12 @@
 ---
 packages_full_repos:
-  - name: vscode
-    key_url: https://packages.microsoft.com/keys/microsoft.asc
-    keyring: /etc/apt/keyrings/microsoft.gpg
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
-    filename: vscode
+  # vscode migrated to Nix/home-manager (see ~/.dot/home.nix) — kept here
+  # commented out for reference.
+  # - name: vscode
+  #   key_url: https://packages.microsoft.com/keys/microsoft.asc
+  #   keyring: /etc/apt/keyrings/microsoft.gpg
+  #   repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+  #   filename: vscode
   - name: mise
     key_url: https://mise.jdx.dev/gpg-key.pub
     keyring: /etc/apt/keyrings/mise.gpg
@@ -43,7 +45,7 @@ packages_full:
   - bat # binary installed as /usr/bin/batcat; shimmed below as ~/.local/bin/bat
   - fd-find # binary installed as /usr/bin/fdfind; shimmed below as ~/.local/bin/fd
   - ripgrep # config-tool audit: nvim telescope.lua live_grep + zsh fzf integration; binary is `rg`, no rename
-  - code # from Microsoft apt repo, see packages_full_repos
+  # - code # migrated to Nix/home-manager (see ~/.dot/home.nix)
   # Editors
   - vim
   - neovim
