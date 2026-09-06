@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/vnotes
+WorkingDirectory=%h/ops/vnotes
 ExecStart=/usr/bin/bash -c 'git add -A && git diff-index --quiet HEAD || git commit -m "Auto-commit: $(date -Iseconds)"; git pull --rebase --autostash && git push'
 
 [Install]

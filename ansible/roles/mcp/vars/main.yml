@@ -8,7 +8,7 @@ mcp_servers:
   vnotes:
     type: stdio
     command: npx
-    args: ["-y", "@modelcontextprotocol/server-filesystem", "{{ ansible_env.HOME }}/vnotes"]
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "{{ ansible_env.HOME }}/ops/vnotes"]
     env: {}
   kubernetes-mcp-server:
     command: npx

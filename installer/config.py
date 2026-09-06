@@ -309,7 +309,7 @@ LAZY_NVIM_PATH = HOME / ".local" / "share" / "nvim" / "lazy" / "lazy.nvim"
 # ──────────────────────────────────────────────
 # VNotes
 # ──────────────────────────────────────────────
-VNOTES_DIR = HOME / "vnotes"
+VNOTES_DIR = HOME / "ops" / "vnotes"
 VNOTES_REPO = "git@github.com:zezav-cz/vnotes.git"
 
 # ──────────────────────────────────────────────

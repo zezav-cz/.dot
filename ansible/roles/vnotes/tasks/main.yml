@@ -5,6 +5,6 @@
   ansible.builtin.include_role:
     name: git-clone
   vars:
-    git_clone_repo: "zezav-cz/vnotes"
-    git_clone_dest: "{{ ansible_env.HOME }}/vnotes"
+    git_clone_repo: "{{ github_user }}/vnotes"
+    git_clone_dest: "{{ ansible_env.HOME }}/ops/vnotes"
     git_clone_version: main
