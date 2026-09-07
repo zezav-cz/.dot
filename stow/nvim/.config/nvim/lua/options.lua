@@ -5,22 +5,21 @@ vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
--- vim.o.background = "dark"
 vim.opt.termguicolors = true
--- vim.cmd([[colorscheme gruvbox]])
 
+-- Give the focused split more room, shrink inactive ones
+vim.o.winwidth = 10
+vim.o.winminwidth = 10
+
+-- Quiet diagnostics: the message is spelled out only on the line the cursor is
+-- on; everywhere else a sign in the gutter is enough. <leader>de for the full
+-- text, K for hover. Swap `virtual_text` for `virtual_lines = { current_line =
+-- true }` if you'd rather have long messages wrapped below the line.
 vim.diagnostic.config({
-  -- <<< THIS is the "on the right in the line" part
-  virtual_text = {
-    prefix = "●",     -- symbol shown before the message
-    spacing = 2,      -- space between code and message
-    -- you can also filter by severity if you want:
-    -- severity = { min = vim.diagnostic.severity.WARN },
-  },
-
-  signs = true,        -- show icons in the sign column
-  underline = true,    -- underline problematic code
-  update_in_insert = true, -- don't spam while typing
+  virtual_text = { current_line = true, prefix = "●" },
+  signs = true,
+  underline = true,
+  update_in_insert = false, -- don't re-lint on every keystroke while typing
   severity_sort = true,
   float = {
     border = "rounded",
@@ -29,9 +28,9 @@ vim.diagnostic.config({
 })
 
 -- Set cwd based on launch argument:
---   nvim ~/vnotes      → cd ~/vnotes
---   nvim ~/vnotes/f.md → cd ~/vnotes
---   nvim               → stay in pwd
+--   nvim ~/ops/vnotes      → cd ~/ops/vnotes
+--   nvim ~/ops/vnotes/f.md → cd ~/ops/vnotes
+--   nvim                   → stay in pwd (empty buffer, nothing is restored)
 local arg = vim.fn.argv(0)
 if arg and arg ~= "" then
   local stat = vim.uv.fs_stat(vim.fn.expand(arg))
@@ -43,24 +42,11 @@ if arg and arg ~= "" then
   end
 end
 
--- Enable list mode (to show whitespace)
+-- Show only the whitespace that is usually a mistake — a dot behind every
+-- single space is noise.
 vim.opt.list = true
-
--- Configure how whitespace looks
--- space: · (middle dot)
--- tab:   → (arrow) followed by a space
 vim.opt.listchars = {
-    space = '·',
-    tab = '→ ',
-    trail = '·', -- Optional: show trailing spaces as dots as well
-    nbsp = '␣',  -- Optional: non-breaking space
+  tab = '→ ',
+  trail = '·',
+  nbsp = '␣',
 }
-
--- Auto spell check for markdown
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "markdown", "tex" },
-  callback = function()
-    vim.opt_local.spell = true
-    vim.opt_local.spelllang = "en,cs"
-  end,
-})

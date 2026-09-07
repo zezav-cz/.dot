@@ -3,7 +3,7 @@ vim.g.mapleader = " "
 
 -- buffers
 vim.keymap.set("n", "<leader>n", ":bn<cr>", { desc = "Next buffer" })
-vim.keymap.set("n", "<leader>p", ":bp<cr>", { desc = "Previous buffer" })
+vim.keymap.set("n", "<leader>N", ":bp<cr>", { desc = "Previous buffer" })
 vim.keymap.set("n", "<leader>x", ":bd<cr>", { desc = "Close buffer" })
 vim.keymap.set("n", "<leader>ml", ":b#<cr>", { desc = "Toggle last buffer" })
 
@@ -21,14 +21,17 @@ vim.keymap.set("n", "<C-d>", "<C-d>zz", { desc = "Scroll down and center" })
 vim.keymap.set("n", "n", "nzzzv", { desc = "Next search result and center" })
 vim.keymap.set("n", "N", "Nzzzv", { desc = "Previous search result and center" })
 
--- search and replace the word under cursor in the file with <leader>s
+-- search and replace the word under cursor in the file
 vim.keymap.set("n", "<leader>sr", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]],
-{ desc = "Search and replace word under cursor in file" })
+  { desc = "Search and replace word under cursor in file" })
 
 vim.keymap.set("n", "<leader>f", function()
-    require('conform').format({ async = true, lsp_fallback = "fallback"})
-end,
-{ desc = "Format file with conform.nvim" })
+  require('conform').format({ async = true, lsp_fallback = "fallback" })
+end, { desc = "Format file with conform.nvim" })
 
--- unhigligh search
+-- Comment toggling (built-in gc/gcc, Neovim 0.10+ — no plugin needed)
+vim.keymap.set("n", "<leader>c", "gcc", { desc = "Toggle comment", remap = true })
+vim.keymap.set("v", "<leader>c", "gc", { desc = "Toggle comment", remap = true })
+
+-- unhighlight search
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')

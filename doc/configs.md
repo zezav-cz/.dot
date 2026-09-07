@@ -25,13 +25,20 @@ Files: `~/.zshrc`
 Neovim with lazy.nvim as plugin manager. Plugins are individual files under
 `lua/plugins/`. Key plugins:
 
-- **LSP**: mason-lspconfig for server management, native LSP configs in `lsp/`
-- **telescope**: fuzzy finder with custom tab picker
+- **LSP**: mason-lspconfig with an explicit allow-list of servers to enable,
+  native LSP configs in `lsp/`
+- **blink.cmp**: completion (LSP, path, snippets, buffer, spelling)
+- **telescope**: fuzzy finder
 - **treesitter**: syntax highlighting and text objects
 - **conform**: formatting (stylua, prettier, black, etc.)
-- **nvim-lint**: linting
-- **gruvbox**: colorscheme with dark-notify for automatic dark/light switching
-- **gitsigns**, **nvim-tree**, **lualine**, **obsidian.nvim**
+- **gruvbox**: colorscheme
+- **gitsigns**, **nvim-tree**, **lualine**, **which-key**, **obsidian.nvim**
+
+There is no tab bar and no session restore: `nvim` with no argument opens an
+empty buffer, and `<leader>e` opens the file tree on demand. Spell checking has
+two per-buffer levels -- `<leader>ss` (built-in, en+cs) and `<leader>sa` (adds
+ltex-ls grammar, English only, off until asked); see
+`stow/nvim/.config/nvim/README.md`.
 
 Files: `~/.config/nvim/`
 
@@ -182,6 +189,4 @@ Some configs reference tools from other packages:
 - **sway** references `foot` (default terminal), `rofi` (launcher), waybar
   scripts, `swaylock`, `kanshi`, `gammastep`, `nwg-bar`
 - **systemd** timer references the `vn` script from `my-scripts`
-- **nvim** obsidian plugin expects the VNotes directory at `~/VNotes`
-- **foot** theme watcher may interact with sway/dark-notify color scheme
-  switching
+- **nvim** obsidian plugin expects the notes vault at `~/ops/vnotes`

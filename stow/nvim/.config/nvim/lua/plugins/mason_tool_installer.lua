@@ -1,25 +1,18 @@
--- Automated Tool Installer (mason-tool-installer.nvim)
--- Ensures essential LSPs, formatters, and linters specified in the config
--- are automatically downloaded and installed via Mason when Neovim starts.
+-- Formatter installer (mason-tool-installer.nvim)
+-- Keeps the external binaries conform.nvim shells out to present. Linters live
+-- in the language servers themselves, so nothing here duplicates diagnostics.
 return {
   "WhoIsSethDaniel/mason-tool-installer.nvim",
   dependencies = { "mason-org/mason.nvim" },
   config = function()
     require("mason-tool-installer").setup({
       ensure_installed = {
-        -- Formatters
         "stylua",
         "black",
         "isort",
         "goimports",
         "prettier",
         "clang-format",
-
-        -- Linters
-        "golangci-lint",
-        "eslint_d",
-        "mypy",
-        "rubocop",
       },
       auto_update = false,
       run_on_start = true,

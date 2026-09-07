@@ -1,6 +1,6 @@
--- Keybindings for built-in LSP features
--- Defines the keyboard shortcuts for LSP actions such as Go To Definition,
--- Rename symbol, Show References, and displaying floating hover documentation.
+-- Keybindings for built-in LSP features.
+-- Server setup itself happens in mason_lspconfig.lua; this only maps keys once
+-- a server actually attaches to a buffer.
 return {
   "neovim/nvim-lspconfig",
   lazy = false,
@@ -11,11 +11,15 @@ return {
       function()
         vim.diagnostic.enable(not vim.diagnostic.is_enabled())
       end,
-      desc = "Toggle Diagnostics",
+      desc = "Toggle diagnostics",
+    },
+    {
+      "<leader>li",
+      "<cmd>checkhealth vim.lsp<cr>",
+      desc = "LSP status (what attached, and why not)",
     },
   },
-  opts = { servers = {} },
-  config = function(_, opts)
+  config = function()
     vim.api.nvim_create_autocmd("LspAttach", {
       group = vim.api.nvim_create_augroup("lsp-keymaps", { clear = true }),
       callback = function(event)
@@ -23,7 +27,6 @@ return {
           vim.keymap.set("n", keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
         end
 
-        -- Go to (<leader>g...); peek variants (<leader>p...) live in goto_preview.lua
         map("gd", vim.lsp.buf.definition, "Go to definition")
         map("<leader>gd", vim.lsp.buf.definition, "Go to definition")
         map("<leader>gi", vim.lsp.buf.implementation, "Go to implementation")
@@ -33,13 +36,10 @@ return {
         map("K", vim.lsp.buf.hover, "Hover documentation")
         map("<leader>rn", vim.lsp.buf.rename, "Rename symbol")
         map("<leader>ca", vim.lsp.buf.code_action, "Code action")
-        map("[d", vim.diagnostic.goto_prev, "Previous diagnostic")
-        map("]d", vim.diagnostic.goto_next, "Next diagnostic")
+        map("[d", function() vim.diagnostic.jump({ count = -1, float = false }) end, "Previous diagnostic")
+        map("]d", function() vim.diagnostic.jump({ count = 1, float = false }) end, "Next diagnostic")
         map("<leader>de", vim.diagnostic.open_float, "Show diagnostic float")
-        map("<leader>ll", function() require("lint").try_lint() end, "Run linters")
       end,
     })
-    
-    -- Note: Server setup is now handled in mason_lspconfig.lua via handlers
   end,
 }

@@ -1,13 +1,18 @@
--- Mason & LSPConfig Bridge (mason-lspconfig.nvim)
--- Connects Mason (the package manager) with built-in lspconfig to automatically
--- setup and configure language servers once they are installed.
+-- Mason & LSPConfig bridge (mason-lspconfig.nvim)
+-- Installs the language servers listed below and enables them automatically.
 return {
   "mason-org/mason-lspconfig.nvim",
   dependencies = {
     { "mason-org/mason.nvim", opts = {} },
     "neovim/nvim-lspconfig",
+    "saghen/blink.cmp",
   },
   config = function()
+    -- Merge completion capabilities into the base config every server inherits.
+    vim.lsp.config("*", {
+      capabilities = require("blink.cmp").get_lsp_capabilities(),
+    })
+
     require("mason-lspconfig").setup({
       ensure_installed = {
         "clangd",
@@ -18,26 +23,25 @@ return {
         "ruff",
         "lua_ls",
         "jsonls",
-        "codebook",
         "ltex",
       },
-      handlers = {
-        function(server_name)
-          local lspconfig = require("lspconfig")
-          -- Try to get capabilities from blink.cmp
-          local has_blink, blink = pcall(require, "blink.cmp")
-          local capabilities = vim.lsp.protocol.make_client_capabilities()
-          if has_blink then
-            capabilities = blink.get_lsp_capabilities(capabilities)
-          end
-          
-          local config = { capabilities = capabilities }
-          
-          lspconfig[server_name].setup(config)
-        end,
-      }
+      -- An explicit allow-list, NOT the default `true`. Left on its own,
+      -- mason-lspconfig enables every mason package that happens to have an LSP
+      -- config in the runtimepath -- which silently attached `stylua --lsp`
+      -- (duplicating conform.nvim) and codebook-lsp to code buffers.
+      --
+      -- ltex is deliberately absent: it boots a JVM and is started per buffer by
+      -- aggressive spell mode (<leader>sa, see lua/spell.lua).
+      automatic_enable = {
+        "clangd",
+        "gopls",
+        "ts_ls",
+        "puppet",
+        "ruby_lsp",
+        "ruff",
+        "lua_ls",
+        "jsonls",
+      },
     })
-
-    vim.lsp.enable("codebook")
   end,
 }
