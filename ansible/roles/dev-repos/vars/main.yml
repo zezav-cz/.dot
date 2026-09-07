@@ -1,6 +1,7 @@
 ---
-dev_repos_org: zezav-cz
-dev_repos_root: "{{ ansible_env.HOME }}/dev/zezav"
+# GitHub organization/username; inherited from stow role via github_user
+dev_repos_org: "{{ github_user }}"
+dev_repos_root: "{{ ansible_env.HOME }}/dev/{{ github_user.split('-')[0] }}"
 dev_repos_list:
   - public
   - secrets

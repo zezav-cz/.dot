@@ -1,8 +1,12 @@
 ---
-stow_repo: "zezav-cz/.dot"
+# GitHub username; can be overridden with -e github_user=<user> at runtime
+github_user: "zezav-cz"
+
+stow_repo: "{{ github_user }}/.dot"
 stow_version: ubuntu
 stow_dest: "{{ ansible_env.HOME }}/.dot"
 stow_packages:
+  - ccstatusline
   - git
   - mise
   - nvim
@@ -17,6 +21,7 @@ stow_packages:
   - nwg-displays
 stow_no_folding:
   - claude
+  - claude-personal
   - my-scripts
   - pgcli
   - vscode

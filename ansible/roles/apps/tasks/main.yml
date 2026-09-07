@@ -160,3 +160,11 @@
   # `exec swaync` for the org.freedesktop.Notifications D-Bus name and
   # crash-loops. Masking the unit leaves the real, working instance
   # (launched by sway's exec line) as the sole notification daemon.
+
+- name: Enable podman user socket (cockpit-podman talks to it over the API)
+  ansible.builtin.systemd:
+    name: podman.socket
+    enabled: true
+    state: started
+    scope: user
+  failed_when: false

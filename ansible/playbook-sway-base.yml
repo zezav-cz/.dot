@@ -1,6 +1,6 @@
 ---
 - name: Sway base (bare-server Sway + login screen)
-  hosts: all
+  hosts: [all, localhost]
   become: false
   roles:
     - packages-base

@@ -17,8 +17,8 @@
   loop: "{{ zsh_plugins | dict2items }}"
   loop_control: { label: "{{ item.key }}" }
 
-- name: Set jan's default shell to zsh
+- name: Set default shell to zsh
   become: true
   ansible.builtin.user:
-    name: jan
+    name: "{{ ansible_user }}"
     shell: /usr/bin/zsh

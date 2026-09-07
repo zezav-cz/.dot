@@ -12,18 +12,18 @@ packages_full_repos:
     keyring: /etc/apt/keyrings/mise.gpg
     repo: "deb [signed-by=/etc/apt/keyrings/mise.gpg arch=amd64] https://mise.jdx.dev/deb stable main"
     filename: mise
-  - name: tailscale
-    # Not in the Ubuntu archive. Tailscale's own repo, ASCII-armored key
-    # variant (fits the same download+dearmor pattern as vscode/mise
-    # above; the "noarmor" variant on the same host is already binary and
-    # would break gpg --dearmor). Uses ansible_distribution_release so
-    # this tracks whatever codename the target box is actually on.
-    # Verified live against the KVM's current codename (resolute): both
-    # the key URL and the resulting repo's Release file return HTTP 200.
-    key_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.gpg"
-    keyring: /etc/apt/keyrings/tailscale.gpg
-    repo: "deb [signed-by=/etc/apt/keyrings/tailscale.gpg] https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main"
-    filename: tailscale
+  # - name: tailscale
+  #   # Not in the Ubuntu archive. Tailscale's own repo, ASCII-armored key
+  #   # variant (fits the same download+dearmor pattern as vscode/mise
+  #   # above; the "noarmor" variant on the same host is already binary and
+  #   # would break gpg --dearmor). Uses ansible_distribution_release so
+  #   # this tracks whatever codename the target box is actually on.
+  #   # Verified live against the KVM's current codename (resolute): both
+  #   # the key URL and the resulting repo's Release file return HTTP 200.
+  #   key_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.gpg"
+  #   keyring: /etc/apt/keyrings/tailscale.gpg
+  #   repo: "deb [signed-by=/etc/apt/keyrings/tailscale.gpg] https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main"
+  #   filename: tailscale
 
 packages_full:
   # VCS & tools
@@ -61,7 +61,7 @@ packages_full:
   # Containers
   - podman
   # Networking
-  - tailscale # from tailscale.com apt repo, see packages_full_repos; config: sway config `exec sleep 3 && tailscale systray`
+  # - tailscale # from tailscale.com apt repo, see packages_full_repos; config: sway config `exec sleep 3 && tailscale systray`
   - blueman # blueman-applet: bluetooth tray icon + GUI manager (started by sway config.d/96-tray-applets.conf)
   - network-manager-gnome # nm-applet: clickable WiFi/network tray icon (Fedora: network-manager-applet). Autostarts via /etc/xdg/autostart/nm-applet.desktop, launched by config.d/95-xdg-desktop-autostart.conf
   # Sway / Wayland utilities

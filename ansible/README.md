@@ -15,8 +15,11 @@ ansible-playbook -i '<IP>,' -u <user> playbook-sway-base.yml
 ```
 
 ```bash
-# full desktop + dotfiles
+# full desktop + dotfiles (clones zezav-cz/.dot by default)
 ansible-playbook -i '<IP>,' -u <user> playbook-environment.yml
+
+# or with a custom GitHub user / .dot fork:
+ansible-playbook -i '<IP>,' -u <user> -e github_user=<github_username> playbook-environment.yml
 ```
 
 ```bash
@@ -41,3 +44,18 @@ skipped: `--skip-tags dev-repos`. Existing checkouts there are never
 updated by re-runs.
 
 Clone a non-default branch: add `-e stow_version=<branch>`.
+
+## Using a different GitHub user (fork / personal account)
+
+All repos (`.dot`, `vnotes`, dev-repos) are cloned under a configurable GitHub username.
+Default is `zezav-cz`. To use your own fork or GitHub account:
+
+```bash
+# Example: use your own fork at github.com/john-doe/dot
+ansible-playbook -i '<IP>,' -u <user> -e github_user=john-doe playbook-environment.yml
+```
+
+This sets:
+- `.dot` repo: `john-doe/.dot`
+- `vnotes` repo: `john-doe/vnotes` (skippable with `--skip-tags vnotes`)
+- dev repos under `~/dev/john/` (prefix derived from `john-doe`)
