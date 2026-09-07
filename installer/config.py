@@ -283,6 +283,7 @@ ZSH_PLUGINS = {
 # Stow
 # ──────────────────────────────────────────────
 STOW_PACKAGES = [
+    "ccstatusline",
     "git",
     "mise",
     "nvim",
@@ -292,19 +293,48 @@ STOW_PACKAGES = [
     "systemd",
     "tmux",
     "zsh",
-    "foot",
     "k9s",
     "nwg-displays",
 ]
 # vscode is no-folding: ~/.config/Code/User/ holds heavy runtime state
 # (workspaceStorage, globalStorage, ...) that must stay outside the repo
-STOW_NO_FOLDING = ["claude", "my-scripts", "pgcli", "vscode"]
+# foot is no-folding: theme-mode.ini is rewritten at runtime by
+# foot-theme-watcher.sh and must stay outside the repo
+# claude-personal is no-folding: ~/.claude-personal/ is the personal Claude
+# Code instance's config dir (CLAUDE_CONFIG_DIR) and holds sessions, projects
+# and credentials that must stay outside the repo
+STOW_NO_FOLDING = ["claude", "claude-personal", "my-scripts", "pgcli", "vscode", "foot"]
+
+# ──────────────────────────────────────────────
+# Claude Code — shared assets between the two instances
+# ──────────────────────────────────────────────
+# The personal instance (pclaude, CLAUDE_CONFIG_DIR=~/.claude-personal) reuses
+# the work instance's (iclaude, ~/.claude) global instructions, agents and
+# skills, so both see the same set. Paths are relative to ~/.claude-personal/
+# and the link targets resolve into ~/.claude/.
+# Plugins are NOT linked: Claude Code rewrites plugins/*.json per config dir
+# (replacing the file, which breaks a symlink, and it would write personal
+# install paths into the work registry). They are shared through the personal
+# settings.json instead -- enabledPlugins + extraKnownMarketplaces are kept in
+# sync with the work settings.json, and each instance installs its own copy.
+CLAUDE_SHARED_LINKS = {
+    "CLAUDE.md": "../.claude/CLAUDE.md",
+    "agents": "../.claude/agents",
+    "skills": "../.claude/skills",
+}
+CLAUDE_PERSONAL_DIR = HOME / ".claude-personal"
 
 # ──────────────────────────────────────────────
 # Neovim
 # ──────────────────────────────────────────────
 LAZY_NVIM_REPO = "https://github.com/folke/lazy.nvim.git"
 LAZY_NVIM_PATH = HOME / ".local" / "share" / "nvim" / "lazy" / "lazy.nvim"
+
+# ──────────────────────────────────────────────
+# tmux
+# ──────────────────────────────────────────────
+TPM_REPO = "https://github.com/tmux-plugins/tpm"
+TPM_PATH = HOME / ".tmux" / "plugins" / "tpm"
 
 # ──────────────────────────────────────────────
 # VNotes
