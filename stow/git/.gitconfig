@@ -4,6 +4,8 @@
   path = ~/.config/git/recombee.gitconfig
 [includeIf "gitdir:~/recombee/"]
   path = ~/.config/git/recombee.gitconfig
+[includeIf "gitdir:~/dev/isee/"]
+  path = ~/.config/git/isee.gitconfig
 ; [includeIf "gitdir:~/dev/fit/"]
 ;    path = ~/.config/git/fit.gitconfig
 [rerere]

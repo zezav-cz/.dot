@@ -32,6 +32,9 @@ build/
 
 # Puppet local dev files
 .mise.local.toml
+.mise.local.lock
 mise.local.toml
+mise.local.lock
 README.local.md
 
+tmp/
