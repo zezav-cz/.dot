@@ -37,3 +37,4 @@ python3 install.py -v                   # verbose output
 - [configs.md](configs.md) -- what each stow package configures
 - [adding-a-package.md](adding-a-package.md) -- how to add a new stow package or installer step
 - [distro-support.md](distro-support.md) -- multi-distro portability status
+- [hardcoded-paths.md](hardcoded-paths.md) -- tracked generated files with baked-in `/home/jan` paths, pending review
