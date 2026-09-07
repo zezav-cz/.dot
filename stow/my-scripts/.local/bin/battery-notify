@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Sends a desktop notification (via notify-send -> swaync) once when the
+# battery crosses into "low" or "critical" while discharging. Re-arms once
+# charging resumes, so it only fires again on the next real discharge.
+# Run periodically by systemd/battery-notify.timer.
+
+LOW=20
+CRITICAL=10
+STATE="${XDG_RUNTIME_DIR:-/tmp}/battery-notify.state"
+
+bat="$(find /sys/class/power_supply -maxdepth 1 -name 'BAT*' -print -quit)"
+[[ -n "$bat" ]] || exit 0
+
+capacity="$(<"$bat/capacity")"
+status="$(<"$bat/status")"
+
+last="none"
+[[ -f "$STATE" ]] && last="$(<"$STATE")"
+
+if [[ "$status" != "Discharging" ]]; then
+  [[ "$last" != "none" ]] && echo "none" >"$STATE"
+  exit 0
+fi
+
+level="none"
+if ((capacity <= CRITICAL)); then
+  level="critical"
+elif ((capacity <= LOW)); then
+  level="low"
+fi
+
+[[ "$level" == "$last" ]] && exit 0
+
+if [[ "$level" == "critical" ]]; then
+  notify-send -u critical -a "Battery" "Battery critical: ${capacity}%" "Plug in now."
+elif [[ "$level" == "low" ]]; then
+  notify-send -u normal -a "Battery" "Battery low: ${capacity}%" "Consider plugging in."
+fi
+
+echo "$level" >"$STATE"

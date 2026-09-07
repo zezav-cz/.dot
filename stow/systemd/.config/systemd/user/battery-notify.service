@@ -1,0 +1,8 @@
+[Unit]
+Description=Check battery level and notify if low or critical
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/battery-notify
