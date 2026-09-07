@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# fzf picker over saved tmux-resurrect snapshots. Bound to `prefix + F` in
+# .tmux.conf (runs inside a `display-popup -E`). Picking a snapshot points
+# tmux-resurrect's "last" symlink at it, then runs its restore script.
+# Saving: `prefix + Ctrl-s` (unnamed) or `prefix + S` (named), both manual.
+#
+# PATH is extended with the mise shims dir: display-popup runs a bare shell
+# that never sources .zshrc's `mise activate`, so a mise-installed fzf would
+# otherwise not be found here.
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
+resurrect_dir="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect"
+resurrect_plugin_dir="$HOME/.tmux/plugins/tmux-resurrect"
+
+shopt -s nullglob
+snapshots=("$resurrect_dir"/tmux_resurrect_*.txt)
+shopt -u nullglob
+
+if [[ ${#snapshots[@]} -eq 0 ]]; then
+    tmux display-message "No saved tmux sessions found (prefix + Ctrl-s / prefix + S to save one)"
+    exit 0
+fi
+
+# Snapshot filenames are either the plain tmux-resurrect format
+# (tmux_resurrect_<timestamp>.txt) or, when saved via `prefix + S`, carry a
+# name (tmux_resurrect_<timestamp>__<name>.txt). List "<file>\t<label>" so
+# fzf displays a friendly label while still passing the real filename through.
+label_for() {
+    local base="$1" ts name
+    ts="${base#tmux_resurrect_}"
+    ts="${ts%.txt}"
+    name=""
+    if [[ "$ts" == *__* ]]; then
+        name="${ts#*__}"
+        ts="${ts%%__*}"
+    fi
+    local pretty_ts
+    pretty_ts="$(date -d "${ts:0:8} ${ts:9:2}:${ts:11:2}:${ts:13:2}" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$ts")"
+    if [[ -n "$name" ]]; then
+        printf '%s  (%s)' "$pretty_ts" "$name"
+    else
+        printf '%s' "$pretty_ts"
+    fi
+}
+
+selected="$(
+    for f in "${snapshots[@]}"; do
+        base="$(basename "$f")"
+        printf '%s\t%s\n' "$base" "$(label_for "$base")"
+    done |
+        sort -r |
+        fzf --prompt="Restore tmux session > " --height=100% --reverse \
+            --delimiter='\t' --with-nth=2 |
+        cut -f1
+)"
+[[ -z "$selected" ]] && exit 0
+
+ln -sf "$resurrect_dir/$selected" "$resurrect_dir/last"
+"$resurrect_plugin_dir/scripts/restore.sh"
+tmux display-message "Restored: $(label_for "$selected")"

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Saves the current tmux-resurrect snapshot under a user-given name, so it's
+# easier to pick out later in tmux-resurrect-load's fzf list. Bound to
+# `prefix + S` in .tmux.conf via `command-prompt`, which passes the typed
+# name as $1 (empty if the user just hits Enter -- falls back to a plain,
+# unnamed save, same as `prefix + Ctrl-s`).
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
+name="${1:-}"
+resurrect_dir="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect"
+resurrect_plugin_dir="$HOME/.tmux/plugins/tmux-resurrect"
+
+"$resurrect_plugin_dir/scripts/save.sh"
+
+if [[ -n "$name" ]]; then
+    saved_file="$(readlink -f "$resurrect_dir/last")"
+    safe_name="$(printf '%s' "$name" | tr -c 'A-Za-z0-9_-' '-')"
+    named_file="${saved_file%.txt}__${safe_name}.txt"
+    mv "$saved_file" "$named_file"
+    ln -sf "$named_file" "$resurrect_dir/last"
+fi
+
+tmux display-message "tmux session saved${name:+ as \"$name\"}"
