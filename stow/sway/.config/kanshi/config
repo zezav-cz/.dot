@@ -7,7 +7,7 @@ profile home_f11 {
     position 0,0
   }
   output "eDP-1" {
-    scale 2
+    scale 1
     position 960,2160
   }
 }
