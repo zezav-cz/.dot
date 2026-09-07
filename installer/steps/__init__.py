@@ -14,6 +14,8 @@ from installer.steps import (
     s06_stow,
     s07_vnotes,
     s08_mcp,
+    s09_nix,
+    s10_direnv,
 )
 
 # Each entry: (name used in --only/--skip, module with run_step())
@@ -27,6 +29,8 @@ STEPS = [
     ("stow", s06_stow),
     ("vnotes", s07_vnotes),
     ("mcp", s08_mcp),
+    ("nix", s09_nix),
+    ("direnv", s10_direnv),
 ]
 
 STEP_NAMES = [name for name, _ in STEPS]
