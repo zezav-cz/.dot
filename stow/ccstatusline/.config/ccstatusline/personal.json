@@ -1,0 +1,79 @@
+{
+  "version": 4,
+  "lines": [
+    [
+      {
+        "id": "07b27c3f-37cc-4034-b171-529e48f29342",
+        "type": "custom-text",
+        "color": "",
+        "bold": true,
+        "customText": "[PERSONAL]"
+      },
+      {
+        "id": "592779dd-a516-4099-9770-5ce02b885d55",
+        "type": "custom-command",
+        "commandPath": "p=${PWD%%/.claude/worktrees*}; echo \"${p##*/}\""
+      },
+      {
+        "id": "da865e34-1fe0-4238-bfee-83c92e6de074",
+        "type": "git-branch"
+      }
+    ],
+    [
+      {
+        "id": "1",
+        "type": "model",
+        "color": "cyan"
+      },
+      {
+        "id": "b0724c76-ebdb-47ae-bd43-257adf7bb74a",
+        "type": "context-percentage"
+      },
+      {
+        "id": "470b3e17-2efc-4709-a093-5b5314835fec",
+        "type": "skills"
+      }
+    ],
+    [
+      {
+        "id": "fe1f0140-ba59-4d2d-860e-49a571429c04",
+        "type": "session-usage"
+      },
+      {
+        "id": "55a2f268-96aa-4e44-8c85-3574a9acb613",
+        "type": "reset-timer"
+      },
+      {
+        "id": "57e1fa8c-e638-42bb-91ba-4107643589e6",
+        "type": "weekly-usage"
+      },
+      {
+        "id": "7b4ca2bd-122d-49d7-8687-b7d0dbeddba4",
+        "type": "weekly-reset-timer"
+      }
+    ]
+  ],
+  "flexMode": "full-minus-40",
+  "compactThreshold": 60,
+  "colorLevel": 2,
+  "defaultPadding": " ",
+  "defaultPaddingSide": "both",
+  "inheritSeparatorColors": false,
+  "globalBold": false,
+  "gitCacheTtlSeconds": 5,
+  "minimalistMode": false,
+  "powerline": {
+    "enabled": true,
+    "separators": [
+      "|"
+    ],
+    "separatorInvertBackground": [
+      false
+    ],
+    "startCaps": [],
+    "endCaps": [],
+    "theme": "custom",
+    "autoAlign": true,
+    "continueThemeAcrossLines": true
+  }
+}
