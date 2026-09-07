@@ -1,60 +1,62 @@
 ---
 name: dev-conventions
-description: Zezav's standard conventions for every coding project — mise for tool/runtime management, mise tasks (fmt/lint/test/build/ci) as the only automation entry point, .editorconfig, a README + doc/ documentation structure with ADRs, Dagger-based CI/CD pipelines, a project bootstrapping checklist, and Conventional Commits for git history. Consult this whenever writing or modifying code in a git repository — bootstrapping a new project, adding or changing a build/lint/test task, writing a README or architecture doc, setting up or editing a CI pipeline, committing changes, or writing Go, TypeScript/Node, Python, Ruby, Puppet, or shell code — even if the user doesn't say "conventions" or name this file. Also consult before running `git commit`, when a new repo is being scaffolded from scratch, or when working with Puppet modules, a control repo, Hiera, or a Puppet Bolt project (plans/tasks/inventory).
+description: Zezav's standard conventions for every coding project — Nix flakes for tool/runtime management, just recipes (fmt/lint/test/build/ci) as the only automation entry point, .editorconfig, a README + doc/ documentation structure with ADRs, nix flake check as the CI gate with git-hooks.nix pre-commit hooks, a project bootstrapping checklist, and Conventional Commits for git history. Consult this whenever writing or modifying code in a git repository — bootstrapping a new project, adding or changing a build/lint/test task, writing a README or architecture doc, setting up or editing a CI pipeline, committing changes, or writing Go, TypeScript/Node, Python, Ruby, Puppet, or shell code — even if the user doesn't say "conventions" or name this file. Also consult before running `git commit`, when a new repo is being scaffolded from scratch, or when working with Puppet modules, a control repo, Hiera, or a Puppet Bolt project (plans/tasks/inventory).
 ---
 
 # Dev Project Conventions
 
 This is how Zezav works across every project, in every language. The goal is that any repo, opened cold, looks and behaves the same way: same tool manager, same task names, same docs layout, same commit style. Follow these conventions by default; don't ask permission to apply them unless the repo already does something conflicting and the change would be disruptive.
 
-## Tool & runtime management — mise
+## Tool & runtime management — Nix
 
-Every project pins its runtimes and CLIs in a `mise.toml` at the project root — never a bare `.tool-versions`. Pin exact versions so builds are reproducible across machines; don't assume a tool (Go, Node, a linter, Dagger itself) is globally available, declare it.
+Every project declares its runtimes and CLIs in a `flake.nix` at the project root, with `flake.lock` committed so builds are reproducible across machines. Don't assume a tool (Go, Node, a linter) is globally available — put it in the devshell.
 
-```toml
-# mise.toml — minimal example
-[tools]
-go = "1.22"
-node = "22"
-golangci-lint = "1.58"
-dagger = "0.11"
+```nix
+# flake.nix — minimal devshell
+devShells.default = pkgs.mkShellNoCC {
+  packages = [
+    pkgs.just
+    pkgs.go
+    pkgs.golangci-lint
+  ];
+};
 ```
 
-When bootstrapping or picking up a project, run `mise install` before anything else.
+Activation is direnv: an `.envrc` with `use flake`, plus `dotenv_if_exists .env` when the project needs secrets. When bootstrapping or picking up a project, run `direnv allow` (or `nix develop`) before anything else.
 
-## Task runner — mise tasks
+## Task runner — just
 
-All automation goes through `mise run <task>`, never raw invocations of the underlying tool. This keeps the command a contributor runs identical regardless of what's implementing it underneath.
+All automation goes through `just <recipe>`, never raw invocations of the underlying tool. This keeps the command a contributor runs identical regardless of what's implementing it underneath. Bare `just` lists every recipe, so the justfile is its own help text.
 
-- **Small tasks (≤ 5 lines)**: define inline in `mise.toml`.
-- **Large tasks (> 5 lines)**: put them in a file-based script under `.mise/tasks/<name>`, `chmod +x` it.
+- **Small recipes (≤ 5 lines)**: define inline in `justfile`.
+- **Large recipes (> 5 lines)**: put them in a file-based script under `scripts/<name>`, `chmod +x` it.
 
-```toml
-[tasks.fmt]
-run = "gofmt -w ."
-description = "Format Go source"
+```just
+# Repair formatting across the working tree.
+fmt:
+    pre-commit run --all-files
 
-[tasks.lint]
-run = "golangci-lint run ./..."
-description = "Run linter"
+# Verify without modifying anything — same hooks, sandboxed.
+lint:
+    nix flake check
 
-[tasks.test]
-run = "go test ./..."
-description = "Run tests"
+# Run tests.
+test:
+    go test ./...
 
-[tasks.build]
-run = "go build -o bin/app ./cmd/app"
-description = "Build binary"
+# Build binary.
+build:
+    go build -o bin/app ./cmd/app
 ```
 
 ```sh
-# .mise/tasks/release
+# scripts/release
 #!/usr/bin/env bash
 set -euo pipefail
 # multi-step release logic here
 ```
 
-Every project must have these five tasks: `fmt`, `lint`, `test`, `build`, and `ci` (which runs fmt + lint + test in sequence). After touching source files, run `fmt`, `lint`, and `test`. Before committing, run `mise run ci`.
+Every project must have these five recipes: `fmt`, `lint`, `test`, `build`, and `ci` (which runs lint + test). After touching source files, run `fmt`, `lint`, and `test`. Before committing, run `just ci`.
 
 ## Editor config
 
@@ -98,7 +100,7 @@ indent_style = tab
         └── 001-<title>.md   # ADRs when needed
 ```
 
-`README.md` needs these five sections, in order: what this is (one paragraph, no fluff), prerequisites (runtime versions, mise setup), quick start (clone → `mise install` → `mise run build`), available tasks (table of every `mise run` task), and project structure (brief directory map).
+`README.md` needs these five sections, in order: what this is (one paragraph, no fluff), prerequisites (Nix with flakes, direnv), quick start (clone → `direnv allow` → `just build`), available tasks (table of every `just` recipe), and project structure (brief directory map).
 
 `doc/architecture.md` covers system design, component responsibilities, and data flow. `doc/development.md` covers local setup details, env vars, and debugging tips. `doc/operations.md` covers deployment, config, and the runbook.
 
@@ -120,61 +122,53 @@ What we decided.
 Trade-offs and implications.
 ```
 
-## CI/CD pipelines — Dagger
+## CI/CD — nix flake check
 
-All pipelines are written in Dagger, not raw YAML in the CI provider. Initialize at the project root:
+`nix flake check` is the CI gate, not raw YAML in the CI provider. It runs the project's pre-commit hooks against a sandboxed copy of the source, so CI and the local commit hook check identical definitions. A hosted runner, when one is needed, does nothing but check out the repo and run `nix flake check`.
 
-```sh
-dagger init --name <project> --sdk go   # preferred
-# or
-dagger init --name <project> --sdk typescript   # only when the project is Node-first
+Hooks are defined once, in `flake.nix`, via `git-hooks.nix`. Enable every hook from its catalogue that applies to the languages present, plus `commitizen` for Conventional Commits.
+
+```nix
+checks.pre-commit = git-hooks.lib.${system}.run {
+  src = ./.;
+  hooks = {
+    gofmt.enable = true;
+    govet.enable = true;
+    staticcheck.enable = true;
+    end-of-file-fixer.enable = true;
+    trim-trailing-whitespace.enable = true;
+    commitizen.enable = true;
+
+    # A tool the catalogue doesn't cover gets defined inline.
+    golangci-lint = {
+      enable = true;
+      name = "golangci-lint";
+      entry = "${pkgs.golangci-lint}/bin/golangci-lint run";
+      types = [ "go" ];
+      pass_filenames = false;
+    };
+  };
+};
 ```
 
-Pipeline entry point is `ci/main.go` (Go SDK) or `ci/src/index.ts` (TS SDK). The pipeline should call `mise run` tasks inside containers rather than duplicating the fmt/lint/test/build logic in Dagger itself — Dagger orchestrates, mise defines the actual commands.
+Check the catalogue before assuming a hook exists — it covers `gofmt`,
+`govet`, `staticcheck`, `prettier`, `eslint`, `ruff`, `mypy`, `shellcheck`
+and ~140 more, but not `golangci-lint`, `rubocop` or `puppet-lint`. Those
+get an inline definition like the one above.
 
-```go
-// ci/main.go
-package main
-
-import (
-    "context"
-    "dagger/ci/internal/dagger"
-)
-
-type Ci struct{}
-
-func (m *Ci) Build(ctx context.Context, src *dagger.Directory) (string, error) {
-    return dag.Container().
-        From("golang:1.22-alpine").
-        WithDirectory("/src", src).
-        WithWorkdir("/src").
-        WithExec([]string{"go", "build", "./..."}).
-        Stdout(ctx)
-}
-
-func (m *Ci) Test(ctx context.Context, src *dagger.Directory) (string, error) {
-    return dag.Container().
-        From("golang:1.22-alpine").
-        WithDirectory("/src", src).
-        WithWorkdir("/src").
-        WithExec([]string{"go", "test", "./..."}).
-        Stdout(ctx)
-}
-```
-
-Run locally with `dagger call build --src .` / `dagger call test --src .`.
+The layering rule: per-file hygiene belongs in hooks, project operations belong in `justfile`. Where they overlap, just delegates to the hooks — `just lint` is `nix flake check` and `just fmt` is `pre-commit run --all-files`, so lint is never defined twice.
 
 ## Bootstrapping a new project
 
 When creating a project from scratch, do this in order — skipping steps is how repos end up inconsistent with everything else Zezav owns:
 
 1. `git init`
-2. Create `mise.toml` with the required tools and the five mandatory tasks
-3. `mise install`
+2. Create `flake.nix` with the devshell and the hook set
+3. `direnv allow` (or `nix develop`)
 4. Initialize the language project (`go mod init ...`, `npm init`, `uv init`, `bundle init` + local bundler config, `pdk new module ...`, `bolt project init ...`, etc.)
 5. Create `.editorconfig`
-6. Create `.gitignore` (language-appropriate template)
-7. `dagger init --sdk go` (or `ts`)
+6. Create `.gitignore` (language-appropriate template), always including `/.direnv/`, `/result` and `/.pre-commit-config.yaml`; `flake.lock` is committed, never ignored
+7. Create `justfile` with the five mandatory recipes
 8. Create `README.md` with all five required sections
 9. Create `doc/` with at least `architecture.md` and `development.md`
 10. Initial commit: `git add -A && git commit -m "chore: initial project scaffold"`
@@ -197,10 +191,10 @@ When creating a project from scratch, do this in order — skipping steps is how
 | `docs` | Documentation only |
 | `refactor` | Code restructure, no behavior change |
 | `test` | Adding or fixing tests |
-| `ci` | Pipeline / Dagger changes |
+| `ci` | CI pipeline or hook set changes |
 | `perf` | Performance improvement |
 
-Rules: subject line ≤ 72 chars, imperative mood ("add X" not "added X"); scope is the component/package affected (optional but helpful); the body explains *why*, since the diff already shows *what*; one logical change per commit; always run `mise run ci` before committing.
+Rules: subject line ≤ 72 chars, imperative mood ("add X" not "added X"); scope is the component/package affected (optional but helpful); the body explains *why*, since the diff already shows *what*; one logical change per commit; always run `just ci` before committing.
 
 When asked to commit, derive the message from the actual diff rather than guessing:
 
@@ -220,7 +214,7 @@ Default page size 50, configurable via ?limit=. Closes #42.
 fix(vault): handle 429 on CRL fetch with exponential backoff
 ```
 ```
-chore: add golangci-lint to mise.toml and ci pipeline
+chore: add golangci-lint to the devshell and hook set
 ```
 ```
 docs(architecture): document L4 LB failover topology
@@ -228,7 +222,7 @@ docs(architecture): document L4 LB failover topology
 
 ## Language-specific notes
 
-Read the reference file for whichever language(s) the project uses before writing fmt/lint/test tasks or bootstrapping — each has its own package manager and tool conventions that plug into the mise/task setup above.
+Read the reference file for whichever language(s) the project uses before writing fmt/lint/test tasks or bootstrapping — each has its own package manager and tool conventions that plug into the flake/just setup above.
 
 - Go → `references/go.md`
 - TypeScript / Node → `references/typescript.md`

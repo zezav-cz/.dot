@@ -1,15 +1,19 @@
 # Ruby
 
-Pin the Ruby version in `mise.toml`:
+Ruby comes from the devshell:
 
-```toml
-[tools]
-ruby = "3.3"
+```nix
+devShells.default = pkgs.mkShellNoCC {
+  packages = [
+    pkgs.ruby_3_3
+    pkgs.just
+  ];
+};
 ```
 
 ## Bundler — vendor gems locally, always
 
-Every Ruby project (plain gems, Puppet modules, Bolt projects — anything with a `Gemfile`) vendors its gems into the project instead of the system/user gem path. This keeps `mise install` + `bundle install` fully reproducible and means two projects on the same machine can pin different gem versions without conflict.
+Every Ruby project (plain gems, Puppet modules, Bolt projects — anything with a `Gemfile`) vendors its gems into the project instead of the system/user gem path. This keeps `direnv allow` + `bundle install` fully reproducible and means two projects on the same machine can pin different gem versions without conflict.
 
 Configure this once per project, right after `bundle init` / when the `Gemfile` is created:
 
@@ -21,24 +25,32 @@ bundle install --binstubs='.bundle/bin'
 
 This writes `.bundle/config` (local, not global) and installs gems under `.bundle/` instead of a shared system location, with executable binstubs in `.bundle/bin`. Add `.bundle/` to `.gitignore` — it's a build artifact, not something to commit; what's committed is the `Gemfile` and `Gemfile.lock`.
 
-Because binaries live in `.bundle/bin`, tasks should call them directly rather than going through `bundle exec` every time:
+Because binaries live in `.bundle/bin`, recipes and hooks should call them directly rather than going through `bundle exec` every time. `rubocop` has no catalogue hook, so define it inline:
 
-```toml
-[tasks.fmt]
-run = ".bundle/bin/rubocop -A"
-description = "Auto-fix Ruby style with rubocop"
+```nix
+hooks.rubocop = {
+  enable = true;
+  name = "rubocop";
+  entry = ".bundle/bin/rubocop -A";
+  types = [ "ruby" ];
+};
+```
 
-[tasks.lint]
-run = ".bundle/bin/rubocop"
-description = "Run rubocop"
+```just
+# Repair formatting across the working tree.
+fmt:
+    pre-commit run --all-files
 
-[tasks.test]
-run = ".bundle/bin/rspec"
-description = "Run rspec tests"
+# Verify without modifying anything.
+lint:
+    nix flake check
 
-[tasks.ci]
-run = ["mise run fmt", "mise run lint", "mise run test"]
-description = "Run fmt + lint + test"
+# Run rspec tests.
+test:
+    .bundle/bin/rspec
+
+# Run lint + test.
+ci: lint test
 ```
 
 ## Style and testing

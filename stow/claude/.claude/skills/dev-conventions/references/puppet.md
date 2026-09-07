@@ -1,34 +1,46 @@
 # Puppet & Puppet Bolt
 
-Puppet tooling (`pdk`, `bolt`, `r10k`, `puppet-lint`) is Ruby underneath, so read `references/ruby.md` first — the same mise-pinned Ruby version and local-vendored-bundler pattern (`.bundle/`, binstubs in `.bundle/bin`) applies here too. Prefer installing the CLIs themselves through mise where a plugin/backend exists (e.g. `"gem:bolt"`, `"gem:r10k"`, `"gem:puppet-lint"` as mise tool entries) so version pinning stays in `mise.toml` like everything else; fall back to the vendored Gemfile/bundler path for anything mise can't manage directly (this is common for `pdk`, which many teams still install as a native OS package because of its bundled toolchain).
+Puppet tooling (`pdk`, `bolt`, `r10k`, `puppet-lint`) is Ruby underneath, so read `references/ruby.md` first — the same devshell-provided Ruby and local-vendored-bundler pattern (`.bundle/`, binstubs in `.bundle/bin`) applies here too. Prefer taking a CLI from nixpkgs where one exists (`pkgs.r10k`, `pkgs.puppet-bolt`) so the version is pinned by `flake.lock` like everything else; fall back to the vendored Gemfile/bundler path for anything nixpkgs doesn't carry (this is common for `pdk`, which many teams still install as a native OS package because of its bundled toolchain).
 
-```toml
-# mise.toml — Puppet control repo or module
-[tools]
-ruby = "3.2"
-"gem:r10k" = "4.1.0"
-"gem:puppet-lint" = "2.5.2"
-"gem:bolt" = "3.28.0"
+```nix
+# flake.nix — Puppet control repo or module
+devShells.default = pkgs.mkShellNoCC {
+  packages = [
+    pkgs.ruby_3_2
+    pkgs.r10k
+    pkgs.puppet-bolt
+    pkgs.just
+  ];
+};
 
-[tasks.fmt]
-run = ".bundle/bin/puppet-lint --fix manifests/ site-modules/"
-description = "Auto-fix Puppet style"
+# puppet-lint has no catalogue hook, so define it inline.
+hooks.puppet-lint = {
+  enable = true;
+  name = "puppet-lint";
+  entry = ".bundle/bin/puppet-lint --fix";
+  files = "\\.pp$";
+};
+```
 
-[tasks.lint]
-run = ".bundle/bin/puppet-lint manifests/ site-modules/ && .bundle/bin/puppet parser validate manifests/ site-modules/"
-description = "Lint + syntax-validate Puppet code"
+```just
+# Repair formatting across the working tree.
+fmt:
+    pre-commit run --all-files
 
-[tasks.test]
-run = ".bundle/bin/rspec"
-description = "Run rspec-puppet unit tests"
+# Verify without modifying anything.
+lint:
+    nix flake check
 
-[tasks.build]
-run = "r10k puppetfile check"
-description = "Validate Puppetfile module pins"
+# Run rspec-puppet unit tests.
+test:
+    .bundle/bin/rspec
 
-[tasks.ci]
-run = ["mise run fmt", "mise run lint", "mise run test", "mise run build"]
-description = "Run fmt + lint + test + build"
+# Validate Puppetfile module pins.
+build:
+    r10k puppetfile check
+
+# Run lint + test + build.
+ci: lint test build
 ```
 
 ## Control repo — roles & profiles
@@ -125,4 +137,4 @@ Puppet and Bolt code follows the same rule as the rest of Ruby: a manifest, defi
 - Bolt plans → `bolt_spec/plans` (ships with the `puppetlabs-bolt_spec` module) for asserting on the sequence of task/command calls a plan makes
 - Ruby-backed custom types/providers/functions → plain `rspec`, same as any other Ruby code
 
-`mise run test` should run the full rspec suite; don't add a plan or profile in one commit and its spec in the next.
+`just test` should run the full rspec suite; don't add a plan or profile in one commit and its spec in the next.

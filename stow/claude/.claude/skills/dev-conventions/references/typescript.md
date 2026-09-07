@@ -1,33 +1,45 @@
 # TypeScript / Node
 
 - Use `prettier` for formatting and `eslint` for linting.
-- `package.json` scripts should just call through to the same commands `mise run` uses — don't maintain two separate command surfaces (npm scripts vs mise tasks) that can drift apart.
+- `package.json` scripts should just call through to the same commands `just` uses — don't maintain two separate command surfaces (npm scripts vs just recipes) that can drift apart.
 - Use `pnpm` over `npm` or `yarn` for installs and running scripts.
 
-Typical `mise.toml` task block for a Node project:
+Node and pnpm come from the devshell, and prettier/eslint are catalogue hooks:
 
-```toml
-[tools]
-node = "22"
-pnpm = "9"
+```nix
+devShells.default = pkgs.mkShellNoCC {
+  packages = [
+    pkgs.nodejs_22
+    pkgs.pnpm
+    pkgs.just
+  ];
+};
 
-[tasks.fmt]
-run = "pnpm exec prettier --write ."
-description = "Format source"
+hooks = {
+  prettier.enable = true;
+  eslint.enable = true;
+};
+```
 
-[tasks.lint]
-run = "pnpm exec eslint ."
-description = "Run linter"
+Typical `justfile` for a Node project:
 
-[tasks.test]
-run = "pnpm test"
-description = "Run tests"
+```just
+# Repair formatting across the working tree.
+fmt:
+    pre-commit run --all-files
 
-[tasks.build]
-run = "pnpm build"
-description = "Build project"
+# Verify without modifying anything.
+lint:
+    nix flake check
 
-[tasks.ci]
-run = ["mise run fmt", "mise run lint", "mise run test"]
-description = "Run fmt + lint + test"
+# Run tests.
+test:
+    pnpm test
+
+# Build project.
+build:
+    pnpm build
+
+# Run lint + test.
+ci: lint test
 ```

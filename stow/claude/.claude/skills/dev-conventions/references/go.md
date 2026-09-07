@@ -2,29 +2,45 @@
 
 - Module path follows the `github.com/<org>/<repo>` convention.
 - Lint with `golangci-lint`, configured via `.golangci.yml` at the project root.
-- Format with `gofmt` (wired up as `mise run fmt`).
+- Format with `gofmt` and vet with `govet`/`staticcheck`, enabled as hooks so `just fmt` and `just lint` cover them.
 - Organize packages as `cmd/`, `internal/`, `pkg/` where appropriate — `cmd/` for binaries, `internal/` for code that shouldn't be imported outside the module, `pkg/` for code that's fine to be imported by other projects.
 
-Typical `mise.toml` task block for a Go project:
+Hooks in `flake.nix`. `golangci-lint` has no catalogue hook, so define it inline:
 
-```toml
-[tasks.fmt]
-run = "gofmt -w ."
-description = "Format Go source"
+```nix
+hooks = {
+  gofmt.enable = true;
+  govet.enable = true;
+  staticcheck.enable = true;
+  golangci-lint = {
+    enable = true;
+    name = "golangci-lint";
+    entry = "${pkgs.golangci-lint}/bin/golangci-lint run";
+    types = [ "go" ];
+    pass_filenames = false;
+  };
+};
+```
 
-[tasks.lint]
-run = "golangci-lint run ./..."
-description = "Run linter"
+Typical `justfile` for a Go project:
 
-[tasks.test]
-run = "go test ./..."
-description = "Run tests"
+```just
+# Repair formatting across the working tree.
+fmt:
+    pre-commit run --all-files
 
-[tasks.build]
-run = "go build -o bin/app ./cmd/app"
-description = "Build binary"
+# Verify without modifying anything.
+lint:
+    nix flake check
 
-[tasks.ci]
-run = ["mise run fmt", "mise run lint", "mise run test"]
-description = "Run fmt + lint + test"
+# Run tests.
+test:
+    go test ./...
+
+# Build binary.
+build:
+    go build -o bin/app ./cmd/app
+
+# Run lint + test.
+ci: lint test
 ```

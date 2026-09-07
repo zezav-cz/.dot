@@ -4,74 +4,82 @@ This file defines how I work in every project. Follow these conventions consiste
 
 ---
 
-## Tool & Runtime Management — mise
+## Tool & Runtime Management — Nix
 
-All runtimes, CLIs, and tools are managed via [mise](https://mise.jdx.dev/).
+All runtimes, CLIs, and tools are declared in a Nix flake.
 
-- Always use `mise.toml` at the project root (never `.tool-versions` alone)
-- Pin exact versions for reproducibility
-- Never assume a tool is globally available — declare it in `mise.toml`
+- Always use `flake.nix` at the project root, with `flake.lock` committed
+- Never assume a tool is globally available — put it in the devshell
+- Activate with direnv: `.envrc` containing `use flake` and, when the
+  project needs secrets, `dotenv_if_exists .env`
 
-```toml
-# mise.toml — minimal example
-[tools]
-go = "1.22"
-node = "22"
-golangci-lint = "1.58"
-dagger = "0.11"
+```nix
+# flake.nix — minimal devshell
+devShells.default = pkgs.mkShellNoCC {
+  packages = [
+    pkgs.just
+    pkgs.go
+    pkgs.golangci-lint
+  ];
+};
 ```
 
 When bootstrapping a new project, run:
 ```sh
-mise install
+direnv allow
 ```
 
 ---
 
-## Task Runner — mise tasks
+## Task Runner — just
 
-Use `mise run <task>` for all automation. Two conventions:
+Use `just <recipe>` for all automation. Two conventions:
 
-### Small tasks (≤ 5 lines) — inline in `mise.toml`
+### Small recipes (≤ 5 lines) — inline in `justfile`
 
-```toml
-[tasks.fmt]
-run = "gofmt -w ."
-description = "Format Go source"
+```just
+# Format all source files.
+fmt:
+    pre-commit run --all-files
 
-[tasks.lint]
-run = "golangci-lint run ./..."
-description = "Run linter"
+# Verify without modifying anything — same hooks, sandboxed.
+lint:
+    nix flake check
 
-[tasks.test]
-run = "go test ./..."
-description = "Run tests"
+# Run the test suite.
+test:
+    go test ./...
 
-[tasks.build]
-run = "go build -o bin/app ./cmd/app"
-description = "Build binary"
+# Build the project.
+build:
+    go build -o bin/app ./cmd/app
 ```
 
-### Large tasks (> 5 lines) — file-based scripts in `.mise/tasks/`
+### Large recipes (> 5 lines) — file-based scripts in `scripts/`
+
+Recipes longer than a few lines call a script in `scripts/` rather than
+growing inline.
 
 ```sh
-# .mise/tasks/release
+# scripts/release
 #!/usr/bin/env bash
 set -euo pipefail
 # multi-step release logic here
 ```
 
-Mark executable: `chmod +x .mise/tasks/release`
+Mark executable: `chmod +x scripts/release`
 
-### Mandatory tasks every project must have
+### Mandatory recipes every project must have
 
-| Task | Purpose |
-|------|---------|
-| `mise run fmt` | Format all source files |
-| `mise run lint` | Run linter(s) |
-| `mise run test` | Run test suite |
-| `mise run build` | Build the project |
-| `mise run ci` | Run fmt + lint + test in sequence |
+| Recipe | Purpose |
+|--------|---------|
+| `just fmt` | Repair formatting across the working tree |
+| `just lint` | Verify without modifying (`nix flake check`) |
+| `just test` | Run test suite |
+| `just build` | Build the project |
+| `just ci` | lint + test |
+
+Bare `just` lists every recipe, so the justfile is its own help text.
 
 Auto-run after touching source files: `fmt`, `lint`, `test`.
 Auto-run before committing: `ci`.
@@ -127,9 +135,9 @@ indent_style = tab
 ### README.md — required sections
 
 1. **What this is** — one paragraph, no fluff
-2. **Prerequisites** — runtime versions, mise setup
-3. **Quick start** — clone → `mise install` → `mise run build`
-4. **Available tasks** — table of all `mise run` tasks
+2. **Prerequisites** — Nix with flakes, direnv
+3. **Quick start** — clone → `direnv allow` → `just build`
+4. **Available tasks** — table of all `just` recipes
 5. **Project structure** — brief directory map
 
 ### doc/ — knowledge sharing
@@ -162,59 +170,53 @@ Trade-offs and implications.
 
 ---
 
-## CI/CD Pipelines — Dagger
+## CI/CD — nix flake check
 
-All pipelines are written in Dagger. Initialize at the project root:
-
-```sh
-dagger init --name <project> --sdk go   # preferred
-# or
-dagger init --name <project> --sdk typescript
-```
+`nix flake check` is the CI gate. It runs the project's pre-commit hooks
+against a sandboxed copy of the source, so CI and the local commit hook
+check identical definitions.
 
 ### Conventions
 
-- Pipeline entry point: `ci/main.go` (Go SDK) or `ci/src/index.ts` (TS SDK)
-- Use Go SDK by default; use TypeScript SDK only when the project is Node-first
-- Pipelines call `mise run` tasks inside containers — don't duplicate logic
+- Hooks are defined once, in `flake.nix`, via `git-hooks.nix`
+- `just lint` is `nix flake check`; `just fmt` is `pre-commit run --all-files`
+  over the working tree
+- Per-file hygiene belongs in hooks; project operations belong in
+  `justfile`. Where they overlap, just delegates to the hooks — never
+  define lint twice
+- Enable every hook from the `git-hooks.nix` catalogue that applies to the
+  languages in the project, plus `commitizen` for Conventional Commits
 
-### Minimal Go pipeline skeleton
+```nix
+checks.pre-commit = git-hooks.lib.${system}.run {
+  src = ./.;
+  hooks = {
+    gofmt.enable = true;
+    govet.enable = true;
+    staticcheck.enable = true;
+    end-of-file-fixer.enable = true;
+    trim-trailing-whitespace.enable = true;
+    commitizen.enable = true;
 
-```go
-// ci/main.go
-package main
-
-import (
-    "context"
-    "dagger/ci/internal/dagger"
-)
-
-type Ci struct{}
-
-func (m *Ci) Build(ctx context.Context, src *dagger.Directory) (string, error) {
-    return dag.Container().
-        From("golang:1.22-alpine").
-        WithDirectory("/src", src).
-        WithWorkdir("/src").
-        WithExec([]string{"go", "build", "./..."}).
-        Stdout(ctx)
-}
-
-func (m *Ci) Test(ctx context.Context, src *dagger.Directory) (string, error) {
-    return dag.Container().
-        From("golang:1.22-alpine").
-        WithDirectory("/src", src).
-        WithWorkdir("/src").
-        WithExec([]string{"go", "test", "./..."}).
-        Stdout(ctx)
-}
+    # A tool the catalogue doesn't cover gets defined inline.
+    golangci-lint = {
+      enable = true;
+      name = "golangci-lint";
+      entry = "${pkgs.golangci-lint}/bin/golangci-lint run";
+      types = [ "go" ];
+      pass_filenames = false;
+    };
+  };
+};
 ```
 
-Run locally:
-```sh
-dagger call build --src .
-dagger call test --src .
-```
+Check the catalogue before assuming a hook exists — it covers `gofmt`,
+`govet`, `staticcheck`, `prettier`, `eslint`, `ruff`, `mypy`, `shellcheck`
+and ~140 more, but not `golangci-lint`, `rubocop` or `puppet-lint`. Those
+get an inline definition like the one above.
+
+A hosted CI runner, when one is needed, does nothing but check out the
+repo and run `nix flake check`.
 
 ---
 
@@ -223,12 +225,14 @@ dagger call test --src .
 When creating a new project from scratch, do this in order:
 
 1. `git init`
-2. Create `mise.toml` with required tools and tasks
-3. `mise install`
+2. Create `flake.nix` with the devshell and the hook set
+3. `direnv allow` (or `nix develop`)
 4. Initialize language project (`go mod init ...`, `npm init`, etc.)
 5. Create `.editorconfig`
-6. Create `.gitignore` (use language-appropriate template)
-7. `dagger init --sdk go` (or ts)
+6. Create `.gitignore` (use language-appropriate template) — always
+   including `/.direnv/`, `/result` and `/.pre-commit-config.yaml`;
+   `flake.lock` is committed, never ignored
+7. Create `justfile` with the mandatory recipes
 8. Create `README.md` with all required sections
 9. Create `doc/` with at least `architecture.md` and `development.md`
 10. Initial commit: `git add -A && git commit -m "chore: initial project scaffold"`
@@ -257,7 +261,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 | `docs` | Documentation only |
 | `refactor` | Code restructure, no behavior change |
 | `test` | Adding or fixing tests |
-| `ci` | Pipeline / Dagger changes |
+| `ci` | CI pipeline or hook set changes |
 | `perf` | Performance improvement |
 
 ### Rules
@@ -266,7 +270,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - Scope = component/package affected (optional but helpful)
 - Body explains *why*, not *what* — the diff shows what
 - One logical change per commit
-- Always run `mise run ci` before committing
+- Always run `just ci` before committing
 
 ### Deriving commit message from git diff
 
@@ -289,7 +293,7 @@ fix(vault): handle 429 on CRL fetch with exponential backoff
 ```
 
 ```
-chore: add golangci-lint to mise.toml and ci pipeline
+chore: add golangci-lint to the devshell and hook set
 ```
 
 ```
@@ -304,24 +308,25 @@ docs(architecture): document L4 LB failover topology
 
 - Module path follows `github.com/<org>/<repo>` convention
 - `golangci-lint` with config at `.golangci.yml`
-- `gofmt` for formatting (via `mise run fmt`)
+- `gofmt` for formatting (via `just fmt`)
 - Packages organized as `cmd/`, `internal/`, `pkg/` where appropriate
 
 ### TypeScript / Node
 
 - `prettier` + `eslint` for fmt/lint
-- `package.json` scripts map to `mise run` tasks
+- `package.json` scripts map to `just` recipes
 - Use `pnpm` over npm/yarn
 
 ### Python
 
 - Package manager: **uv** exclusively — never pip, pipenv, or poetry
-- Declare `python` version in `mise.toml`:
+- Python and uv come from the devshell:
 
-```toml
-[tools]
-python = "3.12"
-uv = "latest"
+```nix
+packages = [
+  pkgs.python3
+  pkgs.uv
+];
 ```
 
 #### Python projects
@@ -335,44 +340,49 @@ uv sync          # install from lockfile
 uv run <cmd>     # run inside the managed venv
 ```
 
-Lint/format tasks use `ruff`:
+Lint/format recipes use `ruff`:
 
-```toml
-[tasks.fmt]
-run = "uv run ruff format ."
+```just
+fmt:
+    pre-commit run --all-files
 
-[tasks.lint]
-run = "uv run ruff check . && uv run mypy ."
+lint:
+    nix flake check
 
-[tasks.test]
-run = "uv run pytest"
+test:
+    uv run pytest
 ```
+
+`ruff` and `mypy` run as `git-hooks.nix` hooks rather than as their own
+recipes, so they are defined once and checked on every commit.
 
 #### Standalone Python scripts
 
-Single-file scripts carry their own dependency metadata as a PEP 723 inline script header, and use the uv shebang so they are directly executable without any manual setup.
+In a Nix project, scripts get their dependencies from the devshell's
+`python3.withPackages`, and use a plain `#!/usr/bin/env python3` shebang.
+
+```nix
+packages = [
+  (pkgs.python3.withPackages (ps: with ps; [ httpx rich ]))
+];
+```
 
 ```python
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#   "httpx>=0.27",
-#   "rich>=13",
-# ]
-# ///
+#!/usr/bin/env python3
 
 import httpx
 from rich import print
 ...
 ```
 
+The PEP 723 inline header plus the `uv run --script` shebang remains the
+right pattern only for scripts that must run outside any project — a
+one-off utility in `~/bin`, not a task in a repo.
+
 Rules:
-- First line is always `#!/usr/bin/env -S uv run --script` — makes the script self-executing
-- `# /// script` block immediately follows with `requires-python` and `dependencies`
-- No `requirements.txt` or `pyproject.toml` needed alongside the script
-- Make executable: `chmod +x script.py`
-- Run directly: `./script.py` or `uv run script.py`
+- Make executable: `chmod +x scripts/<name>`, and drop the `.py` extension
+  for repo tasks so `just` recipes read cleanly
+- Run inside the devshell; outside it, the imports will fail
 
 ### Shell scripts
 
