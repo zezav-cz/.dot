@@ -2,6 +2,7 @@
 GOPRIVATE = "github.com/zezav-cz/*"
 
 [tools]
+loki-logcli = "latest"
 # Migrated to Nix/home-manager (see ~/.dot/home.nix) — kept here commented
 # out for reference. Uninstalled from mise; provided via ~/.nix-profile/bin.
 # asciidoctorj = "latest"
