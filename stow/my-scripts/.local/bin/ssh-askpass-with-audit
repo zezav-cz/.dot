@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# SSH askpass wrapper that logs which process requested key access.
+# Logs to ~/.ssh/audit.log with timestamp and calling process info.
+# Replaces SSH_ASKPASS to provide visibility into SSH key usage.
+
+set -euo pipefail
+
+AUDIT_LOG="${HOME}/.ssh/audit.log"
+mkdir -p "$(dirname "$AUDIT_LOG")"
+
+# Extract calling process info from /proc
+# When ssh-agent calls this, the parent chain is: agent → ssh → askpass
+# Try to find the actual SSH command in the process tree
+get_caller_info() {
+  local ppid=$$
+  local depth=0
+  local max_depth=10
+
+  while [[ $ppid -gt 1 ]] && [[ $depth -lt $max_depth ]]; do
+    if [[ -f "/proc/$ppid/cmdline" ]]; then
+      local cmdline=$(tr '\0' ' ' < "/proc/$ppid/cmdline" | sed 's/[[:space:]]*$//')
+      # Stop when we hit ssh-agent itself
+      if [[ "$cmdline" == *"ssh-agent"* ]] || [[ "$cmdline" == *"sshd"* ]]; then
+        break
+      fi
+      # Return first non-empty cmdline we find
+      if [[ -n "$cmdline" ]]; then
+        echo "$cmdline"
+        return 0
+      fi
+    fi
+
+    # Walk up to parent process
+    if [[ -f "/proc/$ppid/stat" ]]; then
+      ppid=$(awk '{print $4}' "/proc/$ppid/stat")
+    else
+      break
+    fi
+    ((depth++))
+  done
+
+  # Fallback: SSH_CLIENT if available
+  if [[ -n "${SSH_CLIENT:-}" ]]; then
+    echo "SSH from ${SSH_CLIENT%% *}"
+  else
+    echo "unknown"
+  fi
+}
+
+# Get caller info and log it
+caller_info=$(get_caller_info)
+prompt="${1:-Enter passphrase}"
+
+# Log the access attempt
+{
+  echo "$(date '+%Y-%m-%d %H:%M:%S') | Caller: $caller_info | Prompt: $prompt"
+} >> "$AUDIT_LOG"
+
+# Call the portable askpass
+for p in \
+  /usr/libexec/openssh/gnome-ssh-askpass \
+  /usr/lib/openssh/gnome-ssh-askpass \
+  /usr/bin/ssh-askpass
+do
+  if [[ -x "$p" ]]; then
+    # Pass caller info to the GUI dialog (append to prompt)
+    exec "$p" "$prompt (from: $caller_info)"
+  fi
+done
+
+echo "ssh-askpass-with-audit: no askpass helper found" >&2
+exit 1

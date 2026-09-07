@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# View SSH key access audit log
+# Usage: ssh-audit-log          # tail recent 20 lines
+#        ssh-audit-log -f       # follow in real-time
+#        ssh-audit-log -a       # view all (less)
+
+AUDIT_LOG="${HOME}/.ssh/audit.log"
+
+if [[ ! -f "$AUDIT_LOG" ]]; then
+  echo "ssh-audit-log: no audit log found at $AUDIT_LOG" >&2
+  exit 1
+fi
+
+case "${1:-}" in
+  -f|--follow)
+    tail -f "$AUDIT_LOG"
+    ;;
+  -a|--all)
+    less "$AUDIT_LOG"
+    ;;
+  *)
+    tail -20 "$AUDIT_LOG"
+    ;;
+esac

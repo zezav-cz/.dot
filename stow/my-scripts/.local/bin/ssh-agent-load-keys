@@ -34,8 +34,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     echo "ssh-agent-load-keys: skipping missing key $line" >&2
     continue
   fi
-  echo "ssh-agent-load-keys: adding $line (confirm-on-use)" >&2
-  ssh-add -c "$line" </dev/null
+  echo "ssh-agent-load-keys: adding $line" >&2
+  ssh-add "$line" </dev/null
   added=$((added + 1))
 done <"$CONF"
 

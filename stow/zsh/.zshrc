@@ -114,10 +114,11 @@ export LIBVIRT_DEFAULT_URI='qemu:///system'
 
 # ssh-agent (systemd user service) — socket lives under $XDG_RUNTIME_DIR.
 export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/run/user/$UID}/ssh-agent.socket"
-export SSH_ASKPASS="${SSH_ASKPASS:-/usr/libexec/openssh/gnome-ssh-askpass}"
+export SSH_ASKPASS="${HOME}/.local/bin/ssh-askpass-with-audit"
 export SSH_ASKPASS_REQUIRE=prefer
 
 alias rclaude='CLAUDE_CONFIG_DIR="$HOME/.claude-recombee" claude'
+alias ssh-audit='ssh-audit-log'
 
 # bash-style completions (mc, aws)
 autoload -U +X bashcompinit && bashcompinit
