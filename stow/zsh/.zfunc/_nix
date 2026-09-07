@@ -1,0 +1,39 @@
+#compdef nix
+# Native zsh completion for the modern `nix` CLI (nix run/develop/build/flake/...).
+# Talks directly to Nix's own NIX_GET_COMPLETIONS protocol (see
+# `nix --version`'s bash-completion script) instead of bridging bash's
+# completion via bashcompinit, which is too fragile against a real
+# bash-completion install (shopt/etc. zsh doesn't emulate).
+#
+# IMPORTANT: `#compdef` must stay on line 1 — compinit's fpath scan only
+# reads a file's first line to look for the tag (see
+# /usr/share/zsh/functions/Completion/compinit), so any comment above it
+# silently makes the file invisible to the completion system.
+
+_nix() {
+  local -a words_arr
+  local cword=$((CURRENT - 1))
+  words_arr=("${words[@]}")
+
+  local -a lines
+  lines=("${(@f)$(NIX_GET_COMPLETIONS=$cword "${words_arr[@]}" 2>/dev/null)}")
+
+  local type=${lines[1]}
+  lines=("${lines[@][2,-1]}")
+
+  local -a candidates
+  for line in "${lines[@]}"; do
+    [[ -z $line ]] && continue
+    candidates+=("${line%%$'\t'*}")
+  done
+
+  if [[ $type == filenames ]]; then
+    _files
+  elif [[ $type == attrs ]]; then
+    compadd -S '' -- "${candidates[@]}"
+  else
+    compadd -- "${candidates[@]}"
+  fi
+}
+
+_nix "$@"

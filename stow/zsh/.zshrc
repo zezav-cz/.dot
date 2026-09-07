@@ -31,15 +31,25 @@ plugins=(
     copyfile
     )
 
-fpath=(~/.zfunc ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src $fpath)
+fpath=(~/.zfunc ~/.nix-profile/share/zsh/site-functions ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src $fpath)
 autoload -Uz compinit && compinit
 mkdir -p ~/.zfunc
+
+# s5cmd's completion script isn't a #compdef file like the others in ~/.zfunc
+# (it wires itself up via `compdef` only once executed), so autoloading it via
+# fpath leaves the first completion attempt a no-op. Source it directly instead.
+[[ -f ~/.zfunc/_s5cmd ]] && source ~/.zfunc/_s5cmd
 
 source $ZSH/oh-my-zsh.sh
 export TERM=xterm-256color
 
 setopt PROMPT_SUBST
-RPROMPT='$(kube_ps1)'
+# Shows when a Nix devShell is active (IN_NIX_SHELL — set by `nix develop`
+# directly, or by direnv's `use flake` auto-loading a repo's .envrc).
+nix_shell_indicator() {
+  [[ -n "$IN_NIX_SHELL" ]] && echo "%F{blue}❄ nix%f"
+}
+RPROMPT='$(nix_shell_indicator) $(kube_ps1)'
 export EDITOR=nvim
 export VISUAL=nvim
 # editors / openers
@@ -85,7 +95,44 @@ alias bTOML='bat -l toml'      # TOML
 alias bINI='bat -l ini'        # INI / .conf
 alias bSH='bat -l bash'        # shell scripts
 alias sshi='ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile=/dev/null"'
-eval "$(/usr/bin/mise activate zsh)"
+# mise is NOT activated — no tool dirs / shims injected into PATH.
+# Global tools live in Nix (~/.nix-profile/bin); per-project tools are reached
+# explicitly: `mise exec -- <cmd>`, `mise run <task>`, or `mise en` for a
+# subshell with the project env loaded.
+# eval "$(/usr/bin/mise activate zsh)"
+
+# Nix — /etc/profile.d/nix.sh only loads for login shells, so source it
+# explicitly here too (new terminals aren't always login shells).
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+
+# direnv — auto-loads .envrc (e.g. `use flake`) on cd, unloads on cd out.
+# nix-direnv (~/.config/direnv/direnvrc) caches flake devShells so repeated
+# `cd`s into the same repo are instant instead of re-evaluating the flake.
+eval "$(direnv hook zsh)"
+
+# Devshell tools bring their own completions in their Nix store output
+# (e.g. `just`'s share/zsh/site-functions/_just), but there's no reliable way
+# to get that into fpath via exported env vars: fpath/$FPATH are tied in zsh,
+# so a plain `export FPATH=...` from a devShell's (bash) shellHook replaces
+# the whole array instead of extending it, wiping out everything oh-my-zsh
+# and this file set up. So: look up each tool's own bin on $PATH, derive its
+# store output's completion dir, and prepend straight into fpath (never
+# touching $FPATH), then re-run compinit so it's actually picked up.
+_direnv_compinit_reload() {
+  if [[ "$DIRENV_DIR" != "$_LAST_DIRENV_DIR" ]]; then
+    _LAST_DIRENV_DIR="$DIRENV_DIR"
+    local tool bin comp_dir
+    for tool in just; do
+      bin=$(whence -p "$tool" 2>/dev/null) || continue
+      comp_dir="${bin:h:h}/share/zsh/site-functions"
+      [[ -d "$comp_dir" ]] && fpath=("$comp_dir" $fpath)
+    done
+    autoload -Uz compinit && compinit
+  fi
+}
+precmd_functions+=(_direnv_compinit_reload)
 
 # fzf — fuzzy history (Ctrl+R), file search (Ctrl+T), folder cd (Ctrl+F)
 [[ -f /usr/share/fzf/shell/key-bindings.zsh ]] && source /usr/share/fzf/shell/key-bindings.zsh
@@ -129,6 +176,10 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 if [ -d "$HOME/.local/share/mise/installs/gcloud" ]; then
     source "$(gcloud info --format="value(installation.sdk_root)")/completion.zsh.inc" 2>/dev/null
 fi
+
+alias ds='bash docker/scripts/docker_start.sh'
+alias dsr='bash docker/scripts/docker_start.sh --recreate'
+alias here='/home/jantrojak/dev/isee/agents/tools/tmux/here.sh'
 
 
 
@@ -179,4 +230,12 @@ gwc() {
     
     echo "Hotovo! Vytvořen worktree pro větev '$default_branch' v adresáři ./$target_dir/$default_branch"
   )
+}
+
+# ISEE
+isee-ecr-login() {
+  local region="${1:-us-east-1}"
+  local account="039851163718"
+  aws ecr get-login-password --region "$region" \
+    | docker login --username AWS --password-stdin "$account.dkr.ecr.$region.amazonaws.com"
 }
