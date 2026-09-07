@@ -32,7 +32,15 @@
   // ============================================================================
   // Workbench & Appearance
   // ============================================================================
-  "workbench.colorTheme": "Gruvbox Dark (Hard)",
+  // Theme labels must match the extension's contributed labels exactly
+  // (jdinhlife.gruvbox: "Gruvbox Dark/Light {Hard,Medium,Soft}") -- an unknown
+  // label leaves VS Code on the bare `vs` fallback with zero syntax colors.
+  "workbench.colorTheme": "Gruvbox Dark Hard",
+  // window.autoDetectColorScheme (below) follows the system light/dark
+  // preference, same as the foot theme watcher.
+  "workbench.preferredDarkColorTheme": "Gruvbox Dark Medium",
+  "workbench.preferredLightColorTheme": "Gruvbox Light Hard",
+  "workbench.preferredHighContrastLightColorTheme": "Gruvbox Light Hard",
   "workbench.tips.enabled": false,
   "workbench.layoutControl.enabled": false,
   "workbench.editor.empty.hint": "hidden",
@@ -40,6 +48,97 @@
     "statusBar.background": "#303030",
     "statusBar.foreground": "#ffffff",
   },
+  // Syntax highlighting -- push comments and docstrings behind the code.
+  // Comments get the dimmest, most desaturated tone; doc comments and Python
+  // docstrings sit one step brighter with their own muted hue so they read as
+  // neither a plain comment nor live code; ordinary strings are toned down from
+  // the theme's bright green. Scopes are language-agnostic (TextMate matching is
+  // prefix-based), so this covers Python, Go, TS, Rust, Ruby, ... alike.
+  // Theme-scoped with wildcards so both Gruvbox variants stay legible under
+  // window.autoDetectColorScheme.
+  "editor.tokenColorCustomizations": {
+    "[Gruvbox Dark*]": {
+      "textMateRules": [
+        {
+          "name": "Strings -- muted a step below the theme default",
+          "scope": [
+            "string",
+            "string.quoted",
+            "string.template",
+            "punctuation.definition.string"
+          ],
+          "settings": { "foreground": "#98971a" }
+        },
+        {
+          "name": "Python docstrings -- dim, own hue, italic",
+          "scope": [
+            "string.quoted.docstring",
+            "string.quoted.docstring punctuation.definition.string"
+          ],
+          "settings": { "foreground": "#7f8567", "fontStyle": "italic" }
+        },
+        {
+          "name": "Doc comments (JSDoc / javadoc / rustdoc)",
+          "scope": [
+            "comment.block.documentation",
+            "comment.line.documentation",
+            "comment.block.documentation punctuation.definition.comment"
+          ],
+          "settings": { "foreground": "#79705f", "fontStyle": "italic" }
+        },
+        {
+          "name": "Comments -- dimmest, italic",
+          "scope": [
+            "comment",
+            "comment punctuation.definition.comment",
+            "punctuation.definition.comment"
+          ],
+          "settings": { "foreground": "#6d635a", "fontStyle": "italic" }
+        }
+      ]
+    },
+    "[Gruvbox Light*]": {
+      "textMateRules": [
+        {
+          "name": "Strings -- muted a step below the theme default",
+          "scope": [
+            "string",
+            "string.quoted",
+            "string.template",
+            "punctuation.definition.string"
+          ],
+          "settings": { "foreground": "#87821f" }
+        },
+        {
+          "name": "Python docstrings -- dim, own hue, italic",
+          "scope": [
+            "string.quoted.docstring",
+            "string.quoted.docstring punctuation.definition.string"
+          ],
+          "settings": { "foreground": "#8c8c61", "fontStyle": "italic" }
+        },
+        {
+          "name": "Doc comments (JSDoc / javadoc / rustdoc)",
+          "scope": [
+            "comment.block.documentation",
+            "comment.line.documentation",
+            "comment.block.documentation punctuation.definition.comment"
+          ],
+          "settings": { "foreground": "#9d9179", "fontStyle": "italic" }
+        },
+        {
+          "name": "Comments -- dimmest, italic",
+          "scope": [
+            "comment",
+            "comment punctuation.definition.comment",
+            "punctuation.definition.comment"
+          ],
+          "settings": { "foreground": "#a89984", "fontStyle": "italic" }
+        }
+      ]
+    }
+  },
+
   "explorer.compactFolders": true,
 
   // Zen Mode
@@ -115,6 +214,7 @@
     { "before": [ "leader", "p", "i" ], "commands": [ "editor.action.peekImplementation" ] },
     { "before": [ "leader", "p", "r" ], "commands": [ "editor.action.referenceSearch.trigger" ] }, // Peek references
     { "before": [ "leader", "p", "t" ], "commands": [ "editor.action.peekTypeDefinition" ] },
+    { "before": [ "leader", "p", "x" ], "commands": [ "closeReferenceSearch" ] }, // Close peek windows
     { "before": [ "leader", "r", "n" ], "commands": [ "editor.action.rename" ] },
     { "before": [ "leader", "c", "a" ], "commands": [ "editor.action.quickFix" ] },
     { "before": [ "[", "d" ], "commands": [ "editor.action.marker.prev" ] },
@@ -248,6 +348,11 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
 
+  // Markdown
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  },
+
   // Docker Compose
   "[dockercompose]": {
     "editor.insertSpaces": true,
@@ -262,7 +367,6 @@
   },
   "terraform.languageServer.terraform.path": "mise exec -- tofu",
   "window.autoDetectColorScheme": true,
-  "workbench.preferredHighContrastLightColorTheme": "Claude Code Light",
   "githubPullRequests.pullBranch": "never",
   "C_Cpp.default.cppStandard": "c++23",
   "yaml.disableSchemaDetection": [
@@ -292,6 +396,8 @@
     "*.sdb": "${capture}.${extname}-*",
     "*.s3db": "${capture}.${extname}-*"
   },
+  "git.detectWorktrees": true,
+  "python.analysis.typeCheckingMode": "basic",
 
   // Puppet
 
