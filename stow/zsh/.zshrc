@@ -161,6 +161,7 @@ export SSH_ASKPASS_REQUIRE=prefer
 
 alias rclaude='CLAUDE_CONFIG_DIR="$HOME/.claude-recombee" claude'
 alias ssh-audit='ssh-audit-log'
+alias b2='backblaze-b2' # nixpkgs installs it as backblaze-b2 / b2v4
 
 # bash-style completions (aws)
 autoload -U +X bashcompinit && bashcompinit

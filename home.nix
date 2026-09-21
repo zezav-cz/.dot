@@ -89,6 +89,7 @@ in
     rake # gem:rake
     gh
     glab
+    grafana-loki # logcli
     kubernetes-helm # helm
     k9s
     krew
@@ -118,6 +119,12 @@ in
     backblaze-b2 # pipx:b2
     argo-workflows # argo
     zoxide
+    # Declared here rather than `nix profile install`ed so home-manager is the
+    # only thing that writes ~/.nix-profile. ~/.config/direnv/direnvrc (written
+    # by installer/steps/s10_direnv.py) sources nix-direnv from there, and
+    # .zshrc's fpath already covers share/zsh/site-functions.
+    nix-direnv
+    nix-zsh-completions
     dive
     bettercap
     bazel_9 # bazel — pin the major; plain `bazel` still resolves to 7.x
