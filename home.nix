@@ -89,13 +89,11 @@ in
     rake # gem:rake
     gh
     glab
-    s5cmd
     kubernetes-helm # helm
     k9s
     krew
     kubectl
     kubectx # also provides kubens
-    minio-client # mc
     neovim
     nodejs # node
     pandoc

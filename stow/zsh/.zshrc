@@ -35,11 +35,6 @@ fpath=(~/.zfunc ~/.nix-profile/share/zsh/site-functions ${ZSH_CUSTOM:-${ZSH:-~/.
 autoload -Uz compinit && compinit
 mkdir -p ~/.zfunc
 
-# s5cmd's completion script isn't a #compdef file like the others in ~/.zfunc
-# (it wires itself up via `compdef` only once executed), so autoloading it via
-# fpath leaves the first completion attempt a no-op. Source it directly instead.
-[[ -f ~/.zfunc/_s5cmd ]] && source ~/.zfunc/_s5cmd
-
 source $ZSH/oh-my-zsh.sh
 export TERM=xterm-256color
 
@@ -167,9 +162,8 @@ export SSH_ASKPASS_REQUIRE=prefer
 alias rclaude='CLAUDE_CONFIG_DIR="$HOME/.claude-recombee" claude'
 alias ssh-audit='ssh-audit-log'
 
-# bash-style completions (mc, aws)
+# bash-style completions (aws)
 autoload -U +X bashcompinit && bashcompinit
-command -v mc &>/dev/null && complete -o nospace -C "$(command -v mc)" mc
 command -v aws_completer &>/dev/null && complete -C "$(command -v aws_completer)" aws
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 # Auto-detect and source gcloud autocompletion from your active mise path
