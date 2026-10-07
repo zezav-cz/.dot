@@ -22,4 +22,6 @@ tmux -L claude-rc-i-dot attach              # the server TUI (space = QR code, w
 systemctl --user restart claude-rc@p-hub    # e.g. after `claude update` or a re-login
 ```
 
+The servers run whenever the user session does: they start at login (no lingering) and stay reachable with the lid closed when docked or on external power. On battery the lid still suspends the laptop. The on-power part comes from `/etc/systemd/logind.conf.d/lid.conf` (`HandleLidSwitchExternalPower=ignore`), installed by the ansible `logind` role (`ansible-playbook -i localhost, -c local --tags logind playbook-environment.yml`).
+
 The work instance deliberately leaves `CLAUDE_CONFIG_DIR` unset: set explicitly to `~/.claude`, claude reads the account from `~/.claude/.claude.json` instead of `~/.claude.json` and refuses with "Unable to determine your organization for Remote Control eligibility".

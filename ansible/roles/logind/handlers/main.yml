@@ -1,0 +1,8 @@
+---
+# logind re-reads its config on SIGHUP (systemctl reload); a restart would
+# be riskier on a live desktop session.
+- name: Reload logind
+  become: true
+  ansible.builtin.systemd:
+    name: systemd-logind
+    state: reloaded

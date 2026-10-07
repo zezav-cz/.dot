@@ -1,0 +1,17 @@
+---
+- name: Create logind drop-in dir
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/logind.conf.d
+    state: directory
+    mode: '0755'
+
+- name: Keep running on lid close while on external power
+  become: true
+  ansible.builtin.copy:
+    src: lid.conf
+    dest: /etc/systemd/logind.conf.d/lid.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload logind
