@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# claude-rc -- run a Claude Code Remote Control server for one instance.
+#
+# Started by claude-rc@<instance>.service inside a detached tmux session, so
+# the server is always reachable from claude.ai/code and the Claude app, and
+# its TUI (status, QR code on <space>) stays one attach away.
+#
+# Usage: claude-rc <instance>
+#
+# Instances (name -> config dir + working directory):
+#   i-dot     iclaude in ~/.dot
+#   p-dot     pclaude in ~/.dot
+#   i-agents  iclaude in ~/dev/isee/agents
+#   p-hub     pclaude in ~/dev/zezav/hub
+#
+# Every directory must already be trusted by that instance: the trust prompt
+# would block the unattended start.
+
+set -euo pipefail
+
+instance=${1:?usage: claude-rc <instance>}
+
+case $instance in
+  i-dot) config= dir=$HOME/.dot ;;
+  p-dot) config=$HOME/.claude-personal dir=$HOME/.dot ;;
+  i-agents) config= dir=$HOME/dev/isee/agents ;;
+  p-hub) config=$HOME/.claude-personal dir=$HOME/dev/zezav/hub ;;
+  *)
+    echo "claude-rc: unknown instance '$instance'" >&2
+    exit 2
+    ;;
+esac
+
+cd "$dir"
+# Work (iclaude) leaves CLAUDE_CONFIG_DIR unset: set explicitly to ~/.claude,
+# claude would look for the account in ~/.claude/.claude.json instead of
+# ~/.claude.json and refuse with "Unable to determine your organization".
+if [[ -n $config ]]; then
+  export CLAUDE_CONFIG_DIR=$config
+fi
+
+# An interactive zsh picks up the same PATH, mise and direnv hooks as a
+# terminal, so the sessions see the tools they would see from iclaude/pclaude.
+# --spawn is explicit: without it a project that never chose a mode stops at
+# an interactive [1/2] prompt. Each session from the phone gets its own
+# worktree; `w` in the attached TUI toggles to same-dir.
+exec zsh -ic 'exec command claude remote-control --spawn worktree --name "rc: $1"' \
+  claude-rc "$instance"

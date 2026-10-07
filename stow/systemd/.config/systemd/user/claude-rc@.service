@@ -1,0 +1,20 @@
+[Unit]
+Description=Claude Code Remote Control server (%i)
+Documentation=https://code.claude.com/docs/en/remote-control
+Wants=network-online.target
+After=network-online.target ssh-agent.service
+
+[Service]
+# The server is a TUI and needs a terminal: it runs in a detached tmux session
+# on its own socket. When claude exits the session ends, the tmux server goes
+# with it and systemd restarts the unit.
+# Attach: tmux -L claude-rc-%i attach
+Type=forking
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
+ExecStart=/usr/bin/tmux -L claude-rc-%i new-session -d -s %i %h/.local/bin/claude-rc %i
+ExecStop=/usr/bin/tmux -L claude-rc-%i kill-server
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

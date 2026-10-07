@@ -127,6 +127,7 @@ User-level systemd services and environment configuration:
 - **battery-notify.service/.timer** -- polls battery capacity every 2 min and
   fires a `notify-send` low/critical warning (via swaync) while discharging;
   runs the `battery-notify` script from `my-scripts`
+- **claude-rc@.service** -- template that keeps a Claude Code Remote Control server (`claude remote-control --spawn worktree`) always running, so new sessions can be started from claude.ai/code or the Claude app at any time; enabled instances `i-dot`, `p-dot`, `i-agents`, `p-hub` (see `claude-rc` in my-scripts and `doc/claude-sessions.md`). Each runs in a detached tmux session on its own socket because the server is a TUI; `Restart=always` brings it back when claude exits
 - **environment.d/** -- global env vars, PATH extensions, TERM setting
 
 Files: `~/.config/systemd/user/`, `~/.config/environment.d/`
@@ -137,6 +138,7 @@ Custom scripts installed to `~/.local/bin/`. Uses `--no-folding` to avoid
 replacing the shared bin directory with a symlink.
 
 - **vn** -- VNotes manager script
+- **claude-rc** -- `claude-rc <instance>` maps an instance name to a Claude config (work `~/.claude` or personal `~/.claude-personal`) and a working directory, then execs `claude remote-control` through an interactive zsh so sessions get the terminal's PATH, mise and direnv; run by `systemd/claude-rc@.service`
 - **battery-notify** -- checks `/sys/class/power_supply/BAT*`, notifies once
   per low/critical threshold crossing while discharging; paired with
   `systemd/battery-notify.service` + `.timer`
