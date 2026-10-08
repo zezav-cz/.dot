@@ -60,6 +60,7 @@ alias iclaude='command claude'  # iSee Claude (work config/auth in ~/.claude)
 alias pclaude='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" command claude'  # personal Claude (fully separate config/auth from work)
 alias cc='command claude'
 alias zclaude='~/.local/bin/zclaude'  # zezavý Claude (alternate instance w/ ~/.claude-z config)
+alias jql='~/dev/isee/agents/tools/jira/jql'  # cross-project JQL in fzf (jira-cli scopes -q to one project)
 claude() {
   print -u2 "claude: disabled -- use 'iclaude' (work) or 'pclaude' (personal)."
   print -u2 "        real binary is still reachable as 'command claude'."
