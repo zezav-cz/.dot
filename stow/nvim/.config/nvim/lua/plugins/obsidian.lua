@@ -15,7 +15,7 @@ return {
       { name = "vnotes", path = vim.fn.expand("~/ops/vnotes/") },
     },
     templates = {
-      folder      = "99_templates",
+      folder      = "notes/99_templates",
       date_format = "%Y-%m-%d",
       time_format = "%H:%M",
     },

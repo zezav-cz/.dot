@@ -2,6 +2,10 @@
 
 Personal (non-work) tasks live as Markdown files in the Obsidian vault, so the same data is usable from the phone (Obsidian mobile), from the desktop Obsidian app and from the terminal (`life`, in the `my-scripts` package). Work stays in Jira (`jql`); `life` is its personal-life twin and copies its keys where it can.
 
+## Vault layout
+
+The vault (`~/ops/vnotes`) has three top-level folders: `notes/` for knowledge (the Zettelkasten/PARA folders, `notes/00_START_HERE.md`), `tasks/` for the files described here, and `docs/` for scanned documents and PDFs. `docs/` is gitignored, so personal documents reach the phone through remotely-save only and never go to GitHub; `notes/` and `tasks/` are synced by both git and remotely-save.
+
 ## Format
 
 One flat folder (`$LIFE_DIR`, default `~/ops/vnotes/tasks/`), one file per task. There are no epics or projects: a bigger piece of work is one task with subtasks, and tags do the grouping.
@@ -93,7 +97,7 @@ views:
         direction: DESC
 ```
 
-To add a task on the phone, create a note in `tasks/` from this template (`99_templates/tpl_task.md`); `{{date}}` is filled by the core Templates plugin:
+To add a task on the phone, create a note in `tasks/` from this template (`notes/99_templates/tpl_task.md`); `{{date}}` is filled by the core Templates plugin:
 
 ```markdown
 ---
