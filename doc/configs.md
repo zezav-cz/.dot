@@ -142,8 +142,9 @@ replacing the shared bin directory with a symlink.
 - **battery-notify** -- checks `/sys/class/power_supply/BAT*`, notifies once
   per low/critical threshold crossing while discharging; paired with
   `systemd/battery-notify.service` + `.timer`
+- **life** -- personal tasks (one Markdown file each in the vault's `tasks/` folder) browsed in fzf, modeled on the work `jql`; see `doc/tasks.md`
 
-Files: `~/.local/bin/vn`, `~/.local/bin/battery-notify`
+Files: `~/.local/bin/vn`, `~/.local/bin/battery-notify`, `~/.local/bin/life`
 
 ## syncing
 

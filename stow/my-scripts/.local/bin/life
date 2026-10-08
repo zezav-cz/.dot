@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# life -- personal tasks as Markdown files, browsed in fzf like `jql` does Jira.
+#   life                     open tasks
+#   life school              open tasks, list pre-filtered to "school"
+#   life --all               include done tasks
+#   life add 'Submit paper' school uni
+#   life --plain             print a table instead (also when piped)
+#
+# One flat folder, one file per task; the filename is the title. Frontmatter:
+#   status: todo | doing | waiting | done   (missing = todo)
+#   due:    YYYY-MM-DD                      (optional, real deadlines only)
+#   tags:   [school, home]                  (optional, the "areas" to filter by)
+#   created / done: YYYY-MM-DD              (set by this script)
+# The body is free text: `- [ ]` lines are subtasks, `## Log` holds dated
+# entries (what comments are in Jira). Files starting with `_` are not tasks.
+# Full format: doc/tasks.md in the dotfiles repo.
+#
+# Keys: enter edit · alt-n new · alt-m status · alt-d done · alt-c log entry ·
+#       alt-s add subtask · alt-t tick subtask · ctrl-a open/all · ctrl-r reload
+dir=${LIFE_DIR:-$HOME/ops/vnotes/tasks}
+self=$(realpath "$0")
+today=$(date +%F)
+
+[[ -d $dir ]] || { echo "life: $dir does not exist (set LIFE_DIR)" >&2; exit 1; }
+
+# One line per task, sorted: path <TAB> rendered row. Done tasks only with "all".
+list() {
+  local mode=${1:-open} color=${2:-1} files=()
+  shopt -s nullglob
+  for f in "$dir"/*.md; do [[ ${f##*/} == _* ]] || files+=("$f"); done
+  ((${#files[@]})) || return 0
+  gawk -v mode="$mode" -v today="$today" -v color="$color" '
+    function days(d,  t) {
+      t = mktime(substr(d, 1, 4) " " substr(d, 6, 2) " " substr(d, 9, 2) " 0 0 0")
+      return int((t - mktime(gensub(/-/, " ", "g", today) " 0 0 0")) / 86400 + 0.5)
+    }
+    function paint(c, s) { return color ? "\033[" c "m" s "\033[0m" : s }
+    function clean(v) { sub(/[[:space:]]+#.*/, "", v); gsub(/^["\x27]|["\x27]$/, "", v); return v }
+    function addtag(t) { gsub(/^[[:space:]"\x27]+|[[:space:]"\x27]+$/, "", t); if (t != "") tags = tags (tags ? " " : "") "#" t }
+    BEGINFILE { fm = 0; intags = 0; st = "todo"; due = ""; tags = ""; open = 0; shut = 0 }
+    FNR == 1 && /^---[[:space:]]*$/ { fm = 1; next }
+    fm && /^---[[:space:]]*$/ { fm = 0; next }
+    fm {
+      if (intags && /^[[:space:]]*-[[:space:]]/) { t = $0; sub(/^[[:space:]]*-/, "", t); addtag(t); next }
+      intags = 0
+      if (match($0, /^([a-z_]+):[[:space:]]*(.*)$/, m)) {
+        if (m[1] == "status" && clean(m[2]) != "") st = clean(m[2])
+        else if (m[1] == "due") due = clean(m[2])
+        else if (m[1] == "tags") {
+          v = m[2]
+          if (v == "") intags = 1
+          else { gsub(/[][]/, "", v); n = split(v, a, ","); for (i = 1; i <= n; i++) addtag(a[i]) }
+        }
+      }
+      next
+    }
+    /^[[:space:]]*[-*] \[ \]/ { open++ }
+    /^[[:space:]]*[-*] \[[xX]\]/ { shut++ }
+    ENDFILE { if (st != "done" || mode == "all") emit() }
+    function emit() {
+      rank = st == "doing" ? 1 : st == "waiting" ? 2 : st == "todo" ? 3 : st == "done" ? 5 : 4
+      title = FILENAME; sub(/.*\//, "", title); sub(/\.md$/, "", title)
+      # Due as MM-DD this year, red when overdue, yellow within 3 days.
+      ok = due ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/
+      d = sprintf("%-10s", !ok ? "-" : substr(due, 1, 4) == substr(today, 1, 4) ? substr(due, 6) : due)
+      if (ok && st != "done") { left = days(due); if (left < 0) d = paint("31", d); else if (left <= 3) d = paint("33", d) }
+      sc = st == "doing" ? "1;32" : st == "waiting" ? "35" : st == "done" ? "2" : "0"
+      sub_ = open + shut ? sprintf("[%d/%d]", shut, open + shut) : ""
+      row = paint(sc, sprintf("%-8s", st)) " " d " " sprintf("%-6s", sub_) " " title (tags ? "  " paint("2;36", tags) : "")
+      key = sprintf("%d\t%s\t%s", rank, due ? due : "9999", tolower(title))
+      print key "\t" FILENAME "\t" row
+    }
+  ' "${files[@]}" | sort -t $'\t' -k1,1n -k2,2 -k3,3 | cut -f4-
+}
+
+# Set frontmatter key $2 to $3 in file $1, adding the key or the block itself.
+setfield() {
+  local tmp
+  tmp=$(mktemp)
+  gawk -v k="$2" -v v="$3" '
+    function put() { print k ":" (v == "" ? "" : " " v); set = 1 }
+    NR == 1 && /^---[[:space:]]*$/ { fm = 1; print; next }
+    NR == 1 { print "---"; put(); print "---" }
+    fm && /^---[[:space:]]*$/ { if (!set) put(); fm = 0; print; next }
+    fm && index($0, k ":") == 1 { put(); next }
+    { print }
+    END { if (NR == 0) { print "---"; put(); print "---" } }
+  ' "$1" >"$tmp" && cat "$tmp" >"$1"
+  rm -f "$tmp"
+}
+
+status() {
+  setfield "$1" status "$2"
+  if [[ $2 == "done" ]]; then setfield "$1" "done" "$today"; else setfield "$1" "done" ""; fi
+}
+
+move() {
+  local st
+  st=$(printf '%s\n' doing waiting todo "done" |
+    fzf --prompt "$(basename "$1" .md) → " --height 40% --reverse) || return 0
+  status "$1" "$st"
+}
+
+# Insert line $2 at the end of the section headed $3 (e.g. "## Log"), creating
+# the section at the end of the file if needed; trailing blank lines stay last.
+append_to() {
+  local tmp
+  tmp=$(mktemp)
+  gawk -v line="$2" -v head="$3" '
+    { l[NR] = $0 }
+    $0 == head { h = NR }
+    END {
+      if (!h) {
+        n = NR; while (n > 0 && l[n] ~ /^[[:space:]]*$/) n--
+        for (i = 1; i <= n; i++) print l[i]
+        if (n) print ""
+        print head; print line; exit
+      }
+      e = NR
+      for (i = h + 1; i <= NR; i++) if (l[i] ~ /^#{1,2} /) { e = i - 1; break }
+      at = e; while (at > h && l[at] ~ /^[[:space:]]*$/) at--
+      for (i = 1; i <= NR; i++) { print l[i]; if (i == at) print line }
+    }
+  ' "$1" >"$tmp" && cat "$tmp" >"$1"
+  rm -f "$tmp"
+}
+
+ask() {
+  local a
+  if [[ -t 0 ]]; then read -rep "$1" a; else read -r a || true; fi
+  printf '%s' "$a"
+}
+
+log_entry() {
+  local text
+  text=$(ask "Log $(basename "$1" .md): ")
+  [[ -n $text ]] && append_to "$1" "- $today $text" "## Log"
+  return 0
+}
+
+# Subtasks go after the last existing `- [ ]`/`- [x]` line, else above ## Log,
+# else at the end of the file.
+add_subtask() {
+  local text tmp
+  text=$(ask "Subtask: ")
+  [[ -n $text ]] || return 0
+  tmp=$(mktemp)
+  gawk -v line="- [ ] $text" '
+    { l[NR] = $0 }
+    /^[[:space:]]*[-*] \[[ xX]\]/ { last = NR }
+    /^## Log[[:space:]]*$/ && !log_ { log_ = NR }
+    END {
+      if (!last && log_) { at = log_ - 1; while (at > 0 && l[at] ~ /^[[:space:]]*$/) at-- }
+      else at = last ? last : NR
+      if (!last && !log_) { while (at > 0 && l[at] ~ /^[[:space:]]*$/) at--; gap = at > 0 && l[at] !~ /^---/ }
+      for (i = 1; i <= NR; i++) { print l[i]; if (i == at) { if (gap) print ""; print line } }
+      if (at == 0) print line
+    }
+  ' "$1" >"$tmp" && cat "$tmp" >"$1"
+  rm -f "$tmp"
+}
+
+tick() {
+  local pick n
+  pick=$(grep -nE '^[[:space:]]*[-*] \[[ xX]\]' "$1" |
+    fzf --prompt 'tick> ' --height 40% --reverse --delimiter : --with-nth 2..) || return 0
+  n=${pick%%:*}
+  sed -i -E "${n}{s/\[ \]/[x]/;t;s/\[[xX]\]/[ ]/}" "$1"
+}
+
+# Create a task; prints its path. Title and tags come from args or a prompt.
+new() {
+  local title=${1:-} tags file
+  shift || true
+  [[ -n $title ]] || title=$(ask 'Title: ')
+  [[ -n $title ]] || return 1
+  if (($#)); then tags=$*; else tags=$(ask 'Tags (space separated): '); fi
+  file="$dir/${title//\//-}.md"
+  [[ -e $file ]] && { echo "life: '$title' already exists" >&2; return 1; }
+  {
+    echo ---
+    echo "status: todo"
+    echo "due:"
+    printf 'tags: [%s]\n' "$(printf '%s' "$tags" | tr -s ' ,' '\n' | sed '/^$/d' | paste -sd, | sed 's/,/, /g')"
+    echo "created: $today"
+    echo "done:"
+    echo ---
+    echo
+  } >"$file"
+  printf '%s\n' "$file"
+}
+
+show() {
+  if command -v bat >/dev/null; then
+    bat --style=plain --color=always --language=md "$1"
+  else
+    cat "$1"
+  fi
+}
+
+usage() {
+  cat <<'HELP'
+life -- personal tasks in Markdown, browsed in fzf
+
+  life                    open tasks (doing, waiting, todo; by due date)
+  life school             same, filtered to "school" (title or #tag)
+  life --all              include done tasks
+  life add 'Title' tag…   create a task from the command line
+  life --plain            print a table instead of the browser
+
+In the browser
+  type        filter the list (#tag matches a tag)
+  enter       edit the task in $EDITOR
+  alt-n       new task
+  alt-m       change status          alt-d   mark done
+  alt-c       add a log entry        alt-s   add a subtask
+  alt-t       tick / untick a subtask
+  ctrl-a      toggle open / all      ctrl-r  reload
+  ?           this help (move the cursor to get the task back)
+  esc         quit
+HELP
+}
+
+case ${1:-} in
+  -h | --help) usage; exit ;;
+  --list) list "${2:-open}"; exit ;;
+  --show) show "$2"; exit ;;
+  --move) move "$2"; exit ;;
+  --done) status "$2" "done"; exit ;;
+  --log) log_entry "$2"; exit ;;
+  --subtask) add_subtask "$2"; exit ;;
+  --tick) tick "$2"; exit ;;
+  --new) file=$(new) && "${EDITOR:-vi}" "$file"; exit ;;
+  add) shift; new "$@" >/dev/null; exit ;;
+esac
+
+mode=open
+if [[ ${1:-} == --all ]]; then mode=all; shift; fi
+if [[ ${1:-} == --plain ]] || [[ ! -t 1 ]]; then
+  [[ ${1:-} == --plain ]] && shift
+  list "$mode" 0 | cut -f2-
+  exit
+fi
+
+prompt() { [[ $1 == all ]] && echo 'life all> ' || echo 'life> '; }
+list "$mode" | fzf \
+  --ansi --reverse --no-sort --cycle \
+  --delimiter $'\t' --with-nth 2.. \
+  --query "${*:-}" \
+  --prompt "$(prompt "$mode")" \
+  --header '? help · enter edit · alt-n new · alt-m status · alt-d done · alt-c log · alt-s/alt-t subtask' \
+  --preview "$self --show {1}" \
+  --preview-window 'right,55%,wrap' \
+  --bind "enter:execute(\${EDITOR:-vi} {1})+reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "alt-n:execute($self --new)+reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "alt-m:execute($self --move {1})+reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "alt-d:execute-silent($self --done {1})+reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "alt-c:execute($self --log {1})+refresh-preview" \
+  --bind "alt-s:execute($self --subtask {1})+reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "alt-t:execute($self --tick {1})+reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "ctrl-a:transform:[[ \$FZF_PROMPT == *all* ]] && echo 'change-prompt(life> )+reload($self --list open)' || echo 'change-prompt(life all> )+reload($self --list all)'" \
+  --bind "ctrl-r:reload($self --list \$([[ \$FZF_PROMPT == *all* ]] && echo all))" \
+  --bind "?:preview($self --help)"
