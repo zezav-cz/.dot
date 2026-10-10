@@ -51,5 +51,10 @@ pkgs.testers.runNixOSTest {
             machine.succeed(f"su jantrojak -c 'echo x > /home/jantrojak/{f}'")
             machine.succeed(f"test ! -L /home/jantrojak/{f}")
             machine.succeed(f"case \"$(readlink -f /home/jantrojak/{f})\" in {root}/*) exit 1;; esac")
+
+    with subtest("interactive zsh starts clean"):
+        out = machine.succeed("su - jantrojak -c \"zsh -ic 'echo ok' 2>&1\"").strip()
+        assert out == "ok", f"zsh printed extra output:\n{out}"
+        machine.succeed("su - jantrojak -c \"zsh -ic 'type _zsh_autosuggest_start && (( \\''${+functions[_zsh_highlight]} ))'\"")
   '';
 }

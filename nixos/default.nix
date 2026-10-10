@@ -6,5 +6,6 @@
     ./secrets.nix
     ./users.nix
     ./home.nix
+    ./shell.nix
   ];
 }
