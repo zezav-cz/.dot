@@ -14,7 +14,7 @@ let
   # the one base package -- see nix/claude-desktop-profile.nix. The base
   # package is deliberately not in home.packages: installing it too would add a
   # third, unlabelled entry still pointing at ~/.config/Claude.
-  mkClaudeDesktop = import ./nix/claude-desktop-profile.nix {
+  mkClaudeDesktop = import ../nix/claude-desktop-profile.nix {
     inherit (pkgs) lib runCommand makeWrapper;
     inherit claude-desktop;
   };
@@ -68,20 +68,6 @@ let
   });
 in
 {
-  home.username = "jantrojak";
-  home.homeDirectory = "/home/jantrojak";
-
-  # Bumping this after the initial setup is not required/recommended;
-  # it pins the home-manager config format, not package versions.
-  home.stateVersion = "24.11";
-
-  home.sessionVariables = {
-    GOPRIVATE = "github.com/zezav-cz/*";
-  };
-
-  # recommended for non-NixOS Linux (NIX_PATH, TERMINFO_DIRS, XDG data dirs)
-  targets.genericLinux.enable = true;
-
   # 1:1 with stow/mise/.config/mise/config.toml. vn is our own private repo's
   # flake output (~/dev/zezav/vn#packages.default); ccstatusline and jira-cli
   # are custom derivations at nix/*.nix — ccstatusline's npm tarball is a
@@ -179,6 +165,4 @@ in
     # filter (stow/pandoc) gets from plantuml into PDFs.
     librsvg
   ];
-
-  programs.home-manager.enable = true;
 }

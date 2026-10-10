@@ -29,13 +29,11 @@
     in {
       homeConfigurations."jantrojak" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = {
-          inherit inputs;
-          ccstatusline = pkgs.callPackage ./nix/ccstatusline.nix { };
-          jira-cli = pkgs.callPackage ./nix/jira-cli.nix { };
-          claude-desktop = pkgs.callPackage ./nix/claude-desktop.nix { };
-        };
-        modules = [ ./home.nix ];
+        extraSpecialArgs = import ./home/args.nix { inherit pkgs inputs; };
+        modules = [
+          ./home
+          ./home/generic-linux.nix
+        ];
       };
     };
 }

@@ -1,7 +1,7 @@
 """Install direnv for repos with a `.envrc` (e.g. `use flake`).
 
 zsh integration lives in stow/zsh/.zshrc (`eval "$(direnv hook zsh)"`) and
-nix-direnv itself comes from home-manager (home.nix) — this step only installs
+nix-direnv itself comes from home-manager (home/packages.nix) — this step only installs
 the direnv binary and writes the config that points at nix-direnv.
 """
 

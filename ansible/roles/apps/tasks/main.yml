@@ -37,7 +37,7 @@
   loop: "{{ apps }}"
   loop_control: { label: "{{ item.name }}" }
 
-# Signal migrated to Nix/home-manager (see ~/.dot/home.nix) — signature
+# Signal migrated to Nix/home-manager (see ~/.dot/home/packages.nix) — signature
 # verification tasks below only made sense while signal-desktop was in the
 # `apps` AppImage loop above.
 # - name: Download Signal signing key
@@ -77,7 +77,7 @@
   loop_control: { label: "{{ item.name }}" }
 
 # --- Telegram Desktop -------------------------------------------------------
-# Migrated to Nix/home-manager (telegram-desktop in ~/.dot/home.nix). Kept
+# Migrated to Nix/home-manager (telegram-desktop in ~/.dot/home/packages.nix). Kept
 # here commented out for reference.
 # Not an AppImage: the release tarball unpacks to Telegram/Telegram. Installed
 # under ~/.local/opt with a version marker so re-runs are no-ops and upgrades

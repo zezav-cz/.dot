@@ -7,7 +7,7 @@ opt_dir: "{{ ansible_env.HOME }}/.local/opt"
 # Bump the version here to upgrade on the next playbook run.
 telegram_version: "7.1.1"
 telegram_url: "https://github.com/telegramdesktop/tdesktop/releases/download/v{{ telegram_version }}/tsetup.{{ telegram_version }}.tar.xz"
-# Migrated to Nix/home-manager (see ~/.dot/home.nix: telegram-desktop, slack,
+# Migrated to Nix/home-manager (see ~/.dot/home/packages.nix: telegram-desktop, slack,
 # obsidian, headlamp, signal-desktop) — kept here commented out for
 # reference. The apps loop below is now a no-op.
 apps: []

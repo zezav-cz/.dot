@@ -299,7 +299,7 @@ launched via `npx` (node comes from the mise config).
 Not a stow package -- Claude Desktop comes from home-manager. The base
 derivation (`nix/claude-desktop.nix`) repackages Anthropic's .deb;
 `nix/claude-desktop-profile.nix` wraps it into two independent instances that
-`home.nix` installs side by side:
+`home/packages.nix` installs side by side:
 
 | Profile | Binary | Launcher entry | Data directory |
 |---|---|---|---|
@@ -326,7 +326,7 @@ The unwrapped `claude-desktop` package is deliberately not in `home.packages`:
 it would add a third, unlabelled launcher entry still writing to
 `~/.config/Claude`.
 
-Adding a third profile is one more `mkClaudeDesktop { ... }` call in `home.nix`
+Adding a third profile is one more `mkClaudeDesktop { ... }` call in `home/packages.nix`
 with a fresh `profile`/`userDataDir`.
 
 ## Cross-package dependencies

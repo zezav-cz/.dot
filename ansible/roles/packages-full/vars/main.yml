@@ -1,6 +1,6 @@
 ---
 packages_full_repos:
-  # vscode migrated to Nix/home-manager (see ~/.dot/home.nix) — kept here
+  # vscode migrated to Nix/home-manager (see ~/.dot/home/packages.nix) — kept here
   # commented out for reference.
   # - name: vscode
   #   key_url: https://packages.microsoft.com/keys/microsoft.asc
@@ -45,7 +45,7 @@ packages_full:
   - bat # binary installed as /usr/bin/batcat; shimmed below as ~/.local/bin/bat
   - fd-find # binary installed as /usr/bin/fdfind; shimmed below as ~/.local/bin/fd
   - ripgrep # config-tool audit: nvim telescope.lua live_grep + zsh fzf integration; binary is `rg`, no rename
-  # - code # migrated to Nix/home-manager (see ~/.dot/home.nix)
+  # - code # migrated to Nix/home-manager (see ~/.dot/home/packages.nix)
   # Editors
   - vim
   - neovim
