@@ -1,0 +1,15 @@
+# lazygit >= 0.56 replaced `git.paging` with `git.diffRenderers` (the binary
+# still carries the "Renamed git.pagers to git.diffRenderers" migration note).
+# A renderer is {name, type, command}; `stdinFilter` pipes the diff lazygit
+# generated into the command and shows what comes back, which is what a pager
+# like delta wants. `|` cycles renderers, so the builtin one stays reachable.
+#
+# delta is invoked through the delta-theme wrapper (my-scripts package) so the
+# diff follows the system light/dark preference -- a hardcoded --light/--dark
+# would be wrong half the time on this machine, see doc/configs.md.
+# --paging=never: lazygit does its own scrolling, delta must not spawn a pager.
+git:
+  diffRenderers:
+    - name: delta
+      type: stdinFilter
+      command: delta-theme --paging=never

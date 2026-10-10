@@ -1,0 +1,38 @@
+{
+  "$schema": "https://lnav.org/schemas/format-v1.schema.json",
+  "logcli_jsonl": {
+    "title": "Loki logcli JSON Lines",
+    "description": "Output of `logcli query -o jsonl`: one object per entry with the stream labels nested under `labels`.",
+    "url": "https://grafana.com/docs/loki/latest/query/logcli/",
+    "json": true,
+    "timestamp-field": "timestamp",
+    "body-field": "line",
+    "level-field": "labels/detected_level",
+    "level": {
+      "fatal": "^(?i)(?:fatal|panic|crit(?:ical)?)$",
+      "error": "^(?i)(?:error|err)$",
+      "warning": "^(?i)warn(?:ing)?$",
+      "info": "^(?i)info$",
+      "debug": "^(?i)debug$",
+      "trace": "^(?i)trace$"
+    },
+    "line-format": [
+      { "field": "__timestamp__" },
+      " ",
+      { "field": "labels/pod", "default-value": "-", "auto-width": true, "max-width": 40, "overflow": "dot-dot" },
+      " ",
+      { "field": "line" }
+    ],
+    "value": {
+      "line": { "kind": "string" },
+      "labels": { "kind": "json", "hidden": true },
+      "labels/detected_level": { "kind": "string", "hidden": true },
+      "labels/namespace": { "kind": "string", "identifier": true, "hidden": true },
+      "labels/pod": { "kind": "string", "identifier": true },
+      "labels/container": { "kind": "string", "identifier": true, "hidden": true },
+      "labels/app": { "kind": "string", "identifier": true, "hidden": true },
+      "labels/job": { "kind": "string", "identifier": true, "hidden": true },
+      "labels/service_name": { "kind": "string", "identifier": true, "hidden": true }
+    }
+  }
+}
