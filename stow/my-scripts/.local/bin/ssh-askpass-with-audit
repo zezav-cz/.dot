@@ -58,6 +58,7 @@ prompt="${1:-Enter passphrase}"
 
 # Call the portable askpass
 for p in \
+  /run/current-system/sw/bin/lxqt-openssh-askpass \
   /usr/libexec/openssh/gnome-ssh-askpass \
   /usr/lib/openssh/gnome-ssh-askpass \
   /usr/bin/ssh-askpass

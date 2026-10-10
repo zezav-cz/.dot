@@ -11,8 +11,8 @@ After=network-online.target ssh-agent.service
 # Attach: tmux -L claude-rc-%i attach
 Type=forking
 Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
-ExecStart=/usr/bin/tmux -L claude-rc-%i new-session -d -s %i %h/.local/bin/claude-rc %i
-ExecStop=/usr/bin/tmux -L claude-rc-%i kill-server
+ExecStart=/usr/bin/env tmux -L claude-rc-%i new-session -d -s %i %h/.local/bin/claude-rc %i
+ExecStop=/usr/bin/env tmux -L claude-rc-%i kill-server
 Restart=always
 RestartSec=30
 

@@ -1,4 +1,4 @@
-export ZSH="$HOME/.oh-my-zsh"
+export ZSH="${ZSH:-$HOME/.oh-my-zsh}"
 ZSH_THEME="robbyrussell"
 CASE_SENSITIVE="true"
 zstyle ':omz:update' mode reminder  # just remind me to update when it's time
@@ -75,7 +75,7 @@ alias k='kubectl '
 alias py='python3 -q '
 alias copy='wl-copy'
 alias cat='bat'
-alias ccat='/usr/bin/cat'
+alias ccat='command cat'
 alias -g J='| jq .'
 alias -g Y='| yq .'
 # bat with forced syntax (handy for piped stdin where bat can't auto-detect)

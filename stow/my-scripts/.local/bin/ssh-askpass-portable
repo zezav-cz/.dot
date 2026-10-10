@@ -5,8 +5,10 @@
 # operation" on each SSH auth. Fedora ships the GTK askpass under
 # /usr/libexec/openssh/, Debian/Ubuntu under /usr/lib/openssh/
 # (ssh-askpass-gnome) or the alternatives-managed /usr/bin/ssh-askpass.
+# NixOS: lxqt-openssh-askpass from the system profile (nixos/desktop-sway.nix).
 # Exec the first one that exists.
 for p in \
+  /run/current-system/sw/bin/lxqt-openssh-askpass \
   /usr/libexec/openssh/gnome-ssh-askpass \
   /usr/lib/openssh/gnome-ssh-askpass \
   /usr/bin/ssh-askpass

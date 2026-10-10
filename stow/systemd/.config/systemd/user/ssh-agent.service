@@ -10,13 +10,12 @@ Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
 # /usr/lib/openssh/ or /usr/bin/ssh-askpass); the shim picks whichever exists.
 Environment=SSH_ASKPASS=%h/.local/bin/ssh-askpass-portable
 Environment=SSH_ASKPASS_REQUIRE=prefer
-ExecStart=/usr/bin/ssh-agent -D -a $SSH_AUTH_SOCK
+ExecStart=/usr/bin/env ssh-agent -D -a $SSH_AUTH_SOCK
 # Wait until the socket is up before loading keys.
-ExecStartPost=/bin/bash -c 'while [[ ! -S "$SSH_AUTH_SOCK" ]]; do sleep 0.1; done'
+ExecStartPost=/usr/bin/env bash -c 'while [[ ! -S "$SSH_AUTH_SOCK" ]]; do sleep 0.1; done'
 # Load keys listed in ~/.config/ssh-agent/keys.conf (each added with -c: confirm on use).
 # Leading '-' makes failure non-fatal (e.g. missing config, locked session at boot).
 ExecStartPost=-%h/.local/bin/ssh-agent-load-keys
-ExecStop=kill $MAINPID
 
 [Install]
 WantedBy=default.target

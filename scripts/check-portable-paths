@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Fail if stowed desktop/session configs call binaries through distro-specific
+# absolute paths (/usr/bin/x, /usr/libexec/x, /bin/bash, ...). They do not exist
+# on NixOS. `/usr/bin/env <cmd>` and `/bin/sh` exist on every distro and are fine.
+set -euo pipefail
+
+root="${1:-stow}"
+dirs=(sway systemd zsh ssh-agent xdg-portals foot k9s my-scripts rofi tmux git)
+scan=()
+for d in "${dirs[@]}"; do [[ -d "$root/$d" ]] && scan+=("$root/$d"); done
+
+# Lines that probe several distro paths on purpose (guarded with -x/-e).
+allow=(
+  '/sway/\.config/sway/config:[0-9]+:include .*layered-include'
+  '/my-scripts/\.local/bin/ssh-askpass-(portable|with-audit):[0-9]+:[[:space:]]*/usr/'
+)
+
+pattern='(^|[^[:alnum:]_./-])/(usr/(local/)?(s?bin|lib|libexec)|bin)/[[:alnum:]_.-]+'
+hits=$(grep -rnEI "$pattern" "${scan[@]}" \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(#([^!]|$)|//|--)' \
+  | grep -vE '/usr/bin/env([[:space:]]|$)|/bin/sh([[:space:]]|$|")' || true)
+for a in "${allow[@]}"; do
+  hits=$(grep -vE "$a" <<<"$hits" || true)
+done
+
+if [[ -n "$hits" ]]; then
+  echo "Distro-specific absolute paths (use '/usr/bin/env <cmd>' or a bare command):" >&2
+  echo "$hits" >&2
+  exit 1
+fi
+echo "portable-paths: OK"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set() {
     gsettings set org.gnome.desktop.interface color-scheme "$1"

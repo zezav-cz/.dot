@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CONFIG="$HOME/.config/k9s/config.yaml"
 
