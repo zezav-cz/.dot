@@ -3,6 +3,7 @@
 {
   imports = [
     ./base.nix
+    ./flake-sources.nix
     ./secrets.nix
     ./users.nix
     ./home.nix

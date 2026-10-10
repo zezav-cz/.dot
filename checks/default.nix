@@ -49,6 +49,9 @@
     assert !c.hardware.nvidia.open;
     assert lib.elem "--unsupported-gpu" c.programs.sway.extraOptions;
     assert c.services.snapper.configs ? home;
+    # sudo nixos-rebuild evaluates as root, which cannot fetch the private
+    # vn input over SSH: its source must stay in the store (a GC root).
+    assert lib.elem inputs.vn.outPath (map toString c.system.extraDependencies);
     pkgs.runCommand "p15v-layout" { } "touch $out";
 
   p15v-toplevel = self.nixosConfigurations.p15v.config.system.build.toplevel;

@@ -19,13 +19,7 @@
   users.users.root.openssh.authorizedKeys.keyFiles = [ ../../keys/jantrojak.pub ];
 
   environment.etc."dot".source = self;
-  isoImage.storeContents =
-    let
-      sources = i: [ i.outPath ] ++ lib.concatMap sources (lib.attrValues (i.inputs or { }));
-    in
-    lib.unique (
-      [ self.outPath ] ++ lib.concatMap sources (lib.attrValues (removeAttrs inputs [ "self" ]))
-    );
+  isoImage.storeContents = import ../../lib/flake-sources.nix { inherit lib inputs; };
 
   # The host key is sops-encrypted to the OpenPGP key on the YubiKey.
   services.pcscd.enable = true;
