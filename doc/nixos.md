@@ -41,7 +41,7 @@ The user has a private group `jantrojak` with gid 1001, like on Ubuntu: restored
 | `mise run vm` | builds `nixosConfigurations.vm` and opens it in QEMU (KVM, virtio-gpu GL); log in as `jantrojak` / `vm` |
 | `mise run vm:reset` | deletes `.vm/vm.qcow2`, the next boot starts from a fresh disk |
 | `mise run vm:test` | runs the headless desktop test, screenshot at `.vm/test/desktop.png` |
-| `mise run vm:install` / `vm:install:reset` | QEMU window with the plain NixOS ISO and an empty disk, for doing the two-stage install by hand |
+| `mise run vm:install` / `vm:install:reset` | libvirt VM `p15v-install` (plain NixOS ISO, empty disk) for doing the two-stage install by hand in virt-manager; needs libvirt on the host |
 | `mise run vm:rehearsal` | both install stages unattended in QEMU, with checks after each |
 
 The interactive VM mounts the host's `~/.dot` at `/mnt/dot` (9p) and links `~/.dot` to it; edit a file on the host and run `swaymsg reload` in the guest. If sway shows a black screen (host without virgl), add `WLR_RENDERER = "pixman"` to `environment.sessionVariables` in `hosts/vm/interactive.nix`.

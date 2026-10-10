@@ -128,13 +128,14 @@ Firefox: the old profile is under `~/snap/firefox/common/.mozilla/firefox/` in t
 
 ## Virtual run
 
-The same two stages by hand in a VM, with the VM targets: `install-base --vm` installs `p15v-rehearsal-base` to `/dev/vda` with the throwaway VM secrets (login and sudo password `vm`) and the rehearsal host key, so no YubiKey is needed.
+The same two stages by hand in a libvirt VM, with the VM targets: `install-base --vm` installs `p15v-rehearsal-base` to `/dev/vda` with the throwaway VM secrets (login and sudo password `vm`) and the rehearsal host key, so no YubiKey is needed.
 
 ```bash
-mise run vm:install          # QEMU window: NixOS ISO + empty 64 GB disk (UEFI)
+mise run vm:install          # creates and starts the VM "p15v-install" (sudo password)
+virt-manager                 # double-click p15v-install   (or: virt-viewer -c qemu:///system p15v-install)
 ```
 
-Stage 1, in the QEMU window:
+The VM is the plain NixOS minimal ISO, an empty 64 GB disk and UEFI without Secure Boot, on libvirt's NAT network. Stage 1, in the VM window:
 
 ```bash
 sudo -i
@@ -143,18 +144,19 @@ git clone https://github.com/zezav-cz/.dot /tmp/dot
 reboot                                   # boots the installed disk
 ```
 
-The VM variant shows the LUKS prompt on the serial console: in the QEMU window open View → serial0 (Ctrl+Alt+2), type the passphrase there, and go back with Ctrl+Alt+1.
+The VM variant asks for the LUKS passphrase on the serial console: in virt-manager open View → Consoles → Serial 1 (back with View → Consoles → Graphical console), or type it in a host terminal with `sudo virsh console p15v-install` (leave with Ctrl+]).
 
 Stage 2, from a terminal on your Ubuntu host: instead of restoring `~/.ssh` into the VM, SSH in with agent forwarding, so `vn` is fetched with your real keys without copying them anywhere (key confirmations pop up on your desktop as usual):
 
 ```bash
-ssh -A -p 2223 jantrojak@localhost       # port 2223 is forwarded to the VM
+sudo virsh domifaddr p15v-install        # the VM's address, e.g. 192.168.122.196
+ssh -A jantrojak@192.168.122.196
 git clone https://github.com/zezav-cz/.dot ~/.dot
 nixos-rebuild switch --sudo --flake ~/.dot#p15v-rehearsal   # sudo password: vm
-sudo reboot                              # QEMU window: LUKS on serial0 again, then tuigreet -> sway
+sudo reboot                              # LUKS on Serial 1 again, then tuigreet -> sway in the VM window
 ```
 
-The disk persists across `mise run vm:install` runs; `mise run vm:install:reset` starts over. The VM clones from GitHub, so it tests what is pushed.
+The VM and its disk stay until you delete them; `mise run vm:install` starts it again, `mise run vm:install:reset` deletes it and starts over with an empty disk. The VM clones from GitHub, so it tests what is pushed.
 
 ## Afterwards (separate change)
 

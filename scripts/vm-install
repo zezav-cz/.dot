@@ -1,32 +1,55 @@
 #!/usr/bin/env bash
 # Your own virtual run of the two-stage install (doc/nixos-migration.md,
-# "Virtual run"): a QEMU window with the plain NixOS minimal ISO, an empty
-# 64 GB disk and UEFI, just like the laptop. The disk persists in .vm/install/
-# across runs (after stage 1 the VM boots from it); --reset starts over.
-# Stage 2 is done from the host over SSH with agent forwarding, so the private
-# vn input is fetched with your real keys without copying them into the VM:
-#   ssh -A -p 2223 jantrojak@localhost
+# "Virtual run"), as the libvirt VM "p15v-install": the plain NixOS minimal
+# ISO, an empty 64 GB disk, UEFI without Secure Boot (plain OVMF, named
+# explicitly: auto-selection picks the AMD SEV build), like the laptop. GL
+# renders on the Intel iGPU (the default render node is the NVIDIA one). Open
+# it in virt-manager or with `virt-viewer -c qemu:///system p15v-install`.
+#
+# The disk is tried first and the ISO second, so after stage 1 the VM boots
+# the installed system. The VM sits on libvirt's NAT network; stage 2 is done
+# from the host over SSH with agent forwarding (see the doc).
+#
+#   vm-install           create the VM, or start it if it exists
+#   vm-install --reset   delete it (disk included) and create a fresh one
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-w=.vm/install
-[[ ${1:-} == --reset ]] && rm -rf "$w"
-mkdir -p "$w"
+name=p15v-install
+images=/var/lib/libvirt/images
+iso=$images/nixos-minimal-$name.iso
+# shellcheck disable=SC2032,SC2033 # `sudo virsh` here is the real binary
+virsh() { command sudo virsh -c qemu:///system "$@"; }
 
-q=$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#qemu_kvm)
-o=$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#OVMF.fd)
-iso_dir=$(nix build --no-link --print-out-paths .#nixosConfigurations.iso.config.system.build.isoImage)
-iso=$(echo "$iso_dir"/iso/*.iso)
+if [[ ${1:-} == --reset ]] && virsh dominfo "$name" >/dev/null 2>&1; then
+  virsh destroy "$name" >/dev/null 2>&1 || true
+  virsh undefine "$name" --nvram --remove-all-storage
+fi
 
-[[ -e $w/disk.qcow2 ]] || "$q/bin/qemu-img" create -q -f qcow2 "$w/disk.qcow2" 64G
-[[ -e $w/OVMF_VARS.fd ]] || install -m 644 "$o/FV/OVMF_VARS.fd" "$w/OVMF_VARS.fd"
+if virsh dominfo "$name" >/dev/null 2>&1; then
+  virsh domstate "$name" | grep -q running || virsh start "$name"
+else
+  iso_dir=$(nix build --no-link --print-out-paths .#nixosConfigurations.iso.config.system.build.isoImage)
+  sudo install -m 644 "$(echo "$iso_dir"/iso/*.iso)" "$iso"
+  sudo virt-install --connect qemu:///system --name "$name" \
+    --memory 8192 --vcpus 4 --cpu host-passthrough --osinfo linux2022 \
+    --boot loader=/usr/share/OVMF/OVMF_CODE_4M.fd,loader.readonly=yes,loader.type=pflash,nvram.template=/usr/share/OVMF/OVMF_VARS_4M.fd \
+    --disk "path=$images/$name.qcow2,size=64,format=qcow2,bus=virtio,boot.order=1" \
+    --disk "path=$iso,device=cdrom,boot.order=2" \
+    --network network=default,model=virtio \
+    --graphics spice,listen=none,gl.enable=yes,gl.rendernode=/dev/dri/by-path/pci-0000:00:02.0-render \
+    --video virtio,accel3d=yes \
+    --serial pty \
+    --import --noautoconsole
+fi
 
-# Once stage 1 wrote its EFI boot entry, the firmware boots the disk first
-# even with the ISO still attached.
-exec "$q/bin/qemu-system-x86_64" -enable-kvm -machine q35 -cpu host -m 8192 -smp 4 \
-  -drive "if=pflash,format=raw,readonly=on,file=$o/FV/OVMF_CODE.fd" \
-  -drive "if=pflash,format=raw,file=$w/OVMF_VARS.fd" \
-  -drive "file=$w/disk.qcow2,if=virtio,format=qcow2" \
-  -cdrom "$iso" \
-  -nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:2223-:22 \
-  -device virtio-vga-gl -display gtk,gl=on
+cat <<EOF
+
+VM "$name" is running. Open it:
+  virt-manager                                   (double-click $name)
+  virt-viewer -c qemu:///system $name            (screen only)
+LUKS prompt after stage 1 is on the serial console:
+  virt-manager: View -> Consoles -> Serial 1     or: sudo virsh console $name
+VM address for stage 2 (once it booted):
+  sudo virsh domifaddr $name
+EOF

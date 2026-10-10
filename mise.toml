@@ -73,11 +73,11 @@ description = "Automated two-stage p15v install in QEMU: ISO -> install-base -> 
 
 [tasks."vm:install"]
 run = "scripts/vm-install"
-description = "Your own virtual run of the install: QEMU window with the plain NixOS ISO and an empty disk"
+description = "Your own virtual run of the install: libvirt VM p15v-install (plain NixOS ISO, empty disk); open in virt-manager"
 
 [tasks."vm:install:reset"]
 run = "scripts/vm-install --reset"
-description = "Same, starting over with an empty disk"
+description = "Delete the p15v-install VM and its disk, then create a fresh one"
 
 [tasks."migration:preflight"]
 run = "scripts/migration-preflight"
