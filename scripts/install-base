@@ -3,7 +3,7 @@
 # clone of this repo (doc/nixos-migration.md, Phase 1):
 #
 #   sudo -i
-#   nix-shell -p git --run 'git clone https://github.com/zezav-cz/.dot /tmp/dot'
+#   git clone https://github.com/zezav-cz/.dot /tmp/dot
 #   /tmp/dot/scripts/install-base            # --vm in the VM run
 #
 # Installs p15v-base (disk layout, boot, user, Wi-Fi; no desktop) and stops.

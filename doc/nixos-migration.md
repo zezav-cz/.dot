@@ -45,7 +45,7 @@ Boot the stick (F12 at the Lenovo logo; Secure Boot off). Network: ethernet, or 
 
 ```bash
 sudo -i
-nix-shell -p git --run 'git clone https://github.com/zezav-cz/.dot /tmp/dot'
+git clone https://github.com/zezav-cz/.dot /tmp/dot
 /tmp/dot/scripts/install-base
 ```
 
@@ -125,7 +125,7 @@ In the VM:
 
 ```bash
 sudo -i
-nix-shell -p git --run 'git clone https://github.com/zezav-cz/.dot /tmp/dot'
+git clone https://github.com/zezav-cz/.dot /tmp/dot
 /tmp/dot/scripts/install-base --vm       # login password: vm; any LUKS passphrase
 reboot                                   # boots the installed disk
 # LUKS prompt: the VM variant shows it on the serial console, so in the QEMU

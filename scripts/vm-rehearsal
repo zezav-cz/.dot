@@ -184,7 +184,7 @@ def main() -> int:
     try:
         wait_ssh(300)
         upload(BUNDLE, "/tmp/dot.bundle")
-        remote("nix-shell -p git --run 'git clone -q /tmp/dot.bundle /tmp/dot'")
+        remote("git clone -q /tmp/dot.bundle /tmp/dot")
         remote(
             "INSTALL_ASSUME_YES=1 "
             f"INSTALL_LUKS_PASSPHRASE={PASSPHRASE} INSTALL_LOGIN_PASSWORD={LOGIN_PASSWORD} "

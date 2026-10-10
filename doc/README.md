@@ -37,7 +37,9 @@ python3 install.py -v                   # verbose output
 - [configs.md](configs.md) -- what each stow package configures
 - [adding-a-package.md](adding-a-package.md) -- how to add a new stow package or installer step
 - [distro-support.md](distro-support.md) -- multi-distro portability status
+- [claude-sessions.md](claude-sessions.md) -- naming, resuming and organising Claude Code sessions; tmux integration
 - [tasks.md](tasks.md) -- personal task format in the vault and the `life` terminal browser
+- [yubikey.md](yubikey.md) -- YubiKey provisioning runbook: PGP, FIDO2/passkeys, TOTP, SSH
 - [hardcoded-paths.md](hardcoded-paths.md) -- tracked generated files with baked-in `/home/jan` paths, pending review
 - [nixos.md](nixos.md) -- the NixOS configuration: layout, dotfile linking, VM, checks, secrets
 - [nixos-migration.md](nixos-migration.md) -- runbook for wiping p15v and installing NixOS
