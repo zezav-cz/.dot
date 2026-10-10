@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# First login on NixOS: clone repos and register MCP servers with the same
+# ansible roles Ubuntu uses. Idempotent; re-run any time.
+set -euo pipefail
+cd "$(dirname "$0")/../ansible"
+exec nix shell --inputs-from .. nixpkgs#ansible -c \
+  ansible-playbook -i localhost, -c local playbook-user.yml "$@"

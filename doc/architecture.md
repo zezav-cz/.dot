@@ -1,5 +1,7 @@
 # Architecture
 
+This document covers the Ubuntu/Fedora installer and stow. The NixOS configuration is described in [nixos.md](nixos.md).
+
 ## GNU Stow layout
 
 All stow packages live under `stow/`. Each subdirectory of `stow/` is a stow

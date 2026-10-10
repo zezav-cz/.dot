@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal dotfiles repo for bootstrapping a fresh Fedora Sway Spin laptop. Configs are managed with **GNU Stow** -- all packages live under `stow/`, one subdirectory per package, whose contents mirror `~/`.
 
+The repo also defines the NixOS system for the p15v laptop (`flake.nix`, `nixos/`, `hosts/`, `home/`); see `doc/nixos.md` and the migration runbook `doc/nixos-migration.md`.
+
 See `doc/` for deeper documentation: `architecture.md` (installer internals), `configs.md` (per-package overview), `adding-a-package.md`, `distro-support.md`.
 
 ## Installation (end-user)
@@ -45,6 +47,11 @@ Tools are managed by `mise.toml` (all versions pinned). The dev Python environme
 | `mise run sync` | `uv sync` — refresh the dev venv |
 | `mise run install-hooks` | install lefthook git hooks |
 | `mise run setup` | sync + install-hooks |
+| `mise run nix:check` | `nix flake check`: nix lint, portable paths, stow list parity, NixOS desktop test |
+| `mise run nix:fmt` | format all Nix files |
+| `mise run vm` / `vm:reset` / `vm:test` | interactive NixOS VM with the live repo / wipe its disk / headless desktop test |
+| `mise run vm:rehearsal` | full p15v install rehearsal in QEMU (slow) |
+| `mise run migration:preflight` | read-only report of unpushed work and data to back up |
 
 ### Git hooks (lefthook.yml)
 
@@ -57,6 +64,7 @@ Edits must conform to `.editorconfig` (2-space indent, UTF-8, LF, trailing-white
 
 - **`installer/config.py` is the single source of truth** for all installer data: COPR repos, package lists per distro, font downloads, AppImage versions/URLs, Oh-My-Zsh plugins, `STOW_PACKAGES`, `STOW_NO_FOLDING`, VNotes repo, Claude Code MCP servers (`MCP_SERVERS`). Prefer changing data there over editing step modules.
 - **Distro abstraction**: `installer/distro.py` detects the distro from `/etc/os-release` and provides a `PackageManager` ABC with `DnfManager`, `AptManager`, `PacmanManager`. Fedora is fully supported; Debian/Arch package lists are partial stubs.
+- **NixOS**: `STOW_PACKAGES`/`STOW_NO_FOLDING` are mirrored in `home/dotfiles-packages.nix` (`checks.dotfiles-parity` fails on drift). Stowed configs must call binaries by name or via `/usr/bin/env`, never `/usr/bin/x` or `/bin/bash` (`checks.portable-paths`).
 - **Subprocess wrapper**: all shell-outs go through `installer/cmd.py` (`run`, `download`, `is_installed`, `ensure_dir`, `package_installed`) which respects the global `DRY_RUN` flag. Do not call `subprocess` directly from steps.
 
 ## Stow package layout

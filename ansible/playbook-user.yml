@@ -1,0 +1,12 @@
+---
+# User-level setup only (git clones, MCP servers) -- safe on NixOS, where the
+# system roles are replaced by nixos/. Run via scripts/bootstrap-user.
+- name: User data (repos, vnotes, MCP)
+  hosts: [all, localhost]
+  become: false
+  roles:
+    - role: vnotes
+      tags: [vnotes]
+    - role: dev-repos
+      tags: [dev-repos]
+    - mcp

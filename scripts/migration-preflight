@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Read-only report of everything that must be saved before p15v is wiped.
+# Changes nothing. Usage: migration-preflight [DEV_ROOT]   (default ~/dev)
+set -euo pipefail
+
+dev_root="${1:-$HOME/dev}"
+
+report_repo() {
+  local repo="$1" dirty unpushed stashes
+  dirty=$(git -C "$repo" status --porcelain 2>/dev/null | wc -l)
+  unpushed=$(git -C "$repo" log --branches --not --remotes --oneline 2>/dev/null | wc -l)
+  stashes=$(git -C "$repo" stash list 2>/dev/null | wc -l)
+  if ((dirty + unpushed + stashes > 0)); then
+    printf '%-70s dirty=%-4s unpushed=%-4s stashes=%s\n' "$repo" "$dirty" "$unpushed" "$stashes"
+  fi
+}
+
+echo "== Git repos with uncommitted, unpushed or stashed work"
+report_repo "$HOME/.dot"
+[[ -d $HOME/ops/vnotes ]] && report_repo "$HOME/ops/vnotes"
+while IFS= read -r gitdir; do
+  report_repo "${gitdir%/.git}"
+done < <(find "$dev_root" -maxdepth 5 -name .git \( -type d -o -type f \) -prune -print 2>/dev/null)
+
+echo
+echo "== Data outside the repo (back these up)"
+for p in .ssh .gnupg .aws .kube .config/gcloud .config/Claude-personal .config/Claude-work \
+  .claude .claude-personal snap/firefox ops/vnotes .config/Bitwarden .local/share/TelegramDesktop \
+  .config/Signal .config/Slack .config/obsidian; do
+  if [[ -e "$HOME/$p" ]]; then du -sh "$HOME/$p" 2>/dev/null || true; fi
+done
+
+echo
+echo "== Total size of \$HOME"
+du -sh "$HOME" 2>/dev/null || true
