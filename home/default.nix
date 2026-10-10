@@ -2,7 +2,10 @@
 # standalone Ubuntu homeConfigurations (flake.nix, together with
 # ./generic-linux.nix).
 _: {
-  imports = [ ./packages.nix ];
+  imports = [
+    ./packages.nix
+    ./dotfiles.nix
+  ];
 
   home.username = "jantrojak";
   home.homeDirectory = "/home/jantrojak";

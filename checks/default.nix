@@ -28,6 +28,12 @@
     touch $out
   '';
 
+  dotfiles-parity = pkgs.runCommand "dotfiles-parity" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+    python3 ${self}/scripts/check-dotfiles-parity ${self}/installer/config.py \
+      ${pkgs.writeText "lists.json" (builtins.toJSON (import ../home/dotfiles-packages.nix))}
+    touch $out
+  '';
+
   desktop = import ../tests/desktop.nix {
     inherit
       pkgs

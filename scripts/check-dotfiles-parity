@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+"""Fail if installer/config.py and home/dotfiles-packages.nix list different
+stow packages. Usage: check-dotfiles-parity CONFIG_PY NIX_LISTS_JSON"""
+
+import ast
+import json
+import sys
+
+
+def python_lists(path: str) -> dict[str, set[str]]:
+    found: dict[str, set[str]] = {}
+    with open(path, encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+            name = node.targets[0].id
+            if name in ("STOW_PACKAGES", "STOW_NO_FOLDING"):
+                found[name] = set(ast.literal_eval(node.value))
+    return found
+
+
+def main() -> int:
+    py = python_lists(sys.argv[1])
+    with open(sys.argv[2], encoding="utf-8") as f:
+        nix = json.load(f)
+    pairs = [("STOW_PACKAGES", "folded"), ("STOW_NO_FOLDING", "noFolding")]
+    ok = True
+    for py_name, nix_name in pairs:
+        a, b = py.get(py_name, set()), set(nix[nix_name])
+        if a != b:
+            ok = False
+            print(
+                f"{py_name} vs {nix_name}: only in installer {sorted(a - b)}, "
+                f"only in nix {sorted(b - a)}"
+            )
+    print("dotfiles-parity: OK" if ok else "dotfiles-parity: MISMATCH")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
