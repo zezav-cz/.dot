@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# lql -- run a LogQL query with logcli and browse the result in lnav.
+#   lql '{namespace="board"} |= "error"' --since=1h
+#   lql '{app="api"}' --tail
+# Any extra arguments go straight to `logcli query`; --limit defaults to 5000
+# instead of logcli's 30.
+#
+# logcli's jsonl output is parsed by the logcli_jsonl lnav format (lnav stow
+# package). --forward is always on: logcli returns newest-first by default, and
+# lnav clamps every line whose timestamp goes backwards to the previous line's
+# time, which would flatten a whole backward result to a single instant.
+# --include-common-labels keeps the selector labels (namespace, ...) that logcli
+# otherwise strips, so they stay available to lnav filters and SQL.
+#
+# LOKI_ADDR (and LOKI_USERNAME/LOKI_PASSWORD/LOKI_ORG_ID if ever needed) come
+# from ~/.config/loki/env, kept out of this repo; ~/.zshrc sources it too, so
+# plain `logcli` works as well.
+if [[ -z ${LOKI_ADDR:-} && -r ~/.config/loki/env ]]; then
+  # shellcheck source=/dev/null
+  source ~/.config/loki/env
+fi
+: "${LOKI_ADDR:?not set -- put 'export LOKI_ADDR=...' in ~/.config/loki/env}"
+
+(($#)) || { echo "usage: lql '<logql>' [logcli query flags...]" >&2; exit 2; }
+
+args=("$@")
+[[ " $* " == *" --limit"* ]] || args+=(--limit=5000)
+
+logcli query -q -o jsonl --forward --include-common-labels "${args[@]}" | lnav

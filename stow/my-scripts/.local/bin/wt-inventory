@@ -1,0 +1,427 @@
+#!/usr/bin/env python3
+"""Inventory every git worktree under a directory and classify it for cleanup.
+
+Walks the current directory (or --root), finds every git checkout, and for each of its
+worktrees reports whether it is safe to remove, still holds unfinished work, or
+cannot be judged. Read-only: this script never removes a worktree, deletes a
+branch or rewrites anything. The `wt-cleanup` skill does the removing, after the
+user confirms.
+
+    wt-inventory                          # human-readable table
+    wt-inventory --root ~/dev --json      # machine-readable, for the skill
+    wt-inventory --no-fetch               # skip `git fetch`, works offline
+
+Merge detection uses two independent signals, because a plain ancestor test
+misses squash merges (GitLab, GitHub):
+
+  1. `git merge-base --is-ancestor <branch> origin/<base>` — true/ff merge.
+  2. the squash trick — replay the branch's tree as a single commit on the
+    merge base, then ask `git cherry` whether that patch is already in base.
+    This is what catches a squashed MR/PR, where the branch commits
+    themselves never appear in base.
+
+A third signal, the MR/PR state via `glab` or `gh`, needs network access to
+the forge and is left to the skill.
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from datetime import UTC, datetime
+
+# Claude Code creates worktrees here by default; anything else is somebody
+# else's and we do not propose touching it.
+WORKTREE_MARKER = os.path.join(".claude", "worktrees")
+
+# Bases to try when the remote does not publish a default branch.
+BASE_FALLBACKS = ("develop", "main", "master")
+
+
+def git(repo, *args, check=False, raw=False):
+    """Run git in `repo`; return (exit_code, stdout). Never raises on failure.
+
+    `raw=True` keeps leading whitespace. Required for `status --porcelain`,
+    whose path always starts at column 3 — stripping would eat the leading
+    space of an unstaged change and shift every path on that line by one.
+    """
+    proc = subprocess.run(
+        ("git", "-C", repo) + args,
+        capture_output=True,
+        text=True,
+    )
+    if check and proc.returncode != 0:
+        raise RuntimeError(
+            f"git {' '.join(args)} failed in {repo}: {proc.stderr.strip()}"
+        )
+    out = proc.stdout.rstrip("\n") if raw else proc.stdout.strip()
+    return proc.returncode, out
+
+
+def find_repos(root):
+    """Every distinct git checkout under `root`.
+
+    A directory only counts when it *is* the toplevel of its own repo — without
+    that guard, an empty or non-git dir under the root resolves upwards and reports
+    the enclosing workspace repo instead.
+    """
+    repos = []
+    seen = set()
+    for dirpath, dirnames, _ in os.walk(root):
+        depth = dirpath[len(root) :].count(os.sep)
+        if depth >= 4:
+            dirnames[:] = []
+            continue
+        # Do not descend into worktree storage or vendored checkouts.
+        dirnames[:] = [d for d in dirnames if d not in (".git", "node_modules")]
+        if not os.path.isdir(os.path.join(dirpath, ".git")):
+            continue
+        code, toplevel = git(dirpath, "rev-parse", "--show-toplevel")
+        if code != 0:
+            continue
+        toplevel = os.path.realpath(toplevel)
+        if toplevel != os.path.realpath(dirpath) or toplevel in seen:
+            continue
+        seen.add(toplevel)
+        repos.append(toplevel)
+        dirnames[:] = []  # nested repos are separate roots, not our business
+    return sorted(repos)
+
+
+def default_base(repo):
+    """The remote's default branch, e.g. 'develop'. None when undeterminable."""
+    code, out = git(repo, "symbolic-ref", "refs/remotes/origin/HEAD")
+    if code == 0 and out.startswith("refs/remotes/origin/"):
+        return out[len("refs/remotes/origin/") :]
+    for candidate in BASE_FALLBACKS:
+        code, _ = git(repo, "rev-parse", "--verify", f"refs/remotes/origin/{candidate}")
+        if code == 0:
+            return candidate
+    return None
+
+
+def parse_worktrees(repo):
+    """Parse `git worktree list --porcelain` into dicts."""
+    code, out = git(repo, "worktree", "list", "--porcelain")
+    if code != 0:
+        return []
+    entries = []
+    current = {}
+    for line in out.splitlines():
+        if not line:
+            if current:
+                entries.append(current)
+                current = {}
+            continue
+        key, _, value = line.partition(" ")
+        if key == "worktree":
+            current = {
+                "path": value,
+                "locked": False,
+                "prunable": False,
+                "detached": False,
+                "branch": None,
+            }
+        elif key == "branch":
+            current["branch"] = value.replace("refs/heads/", "", 1)
+        elif key == "HEAD":
+            current["head"] = value
+        elif key == "detached":
+            current["detached"] = True
+        elif key == "locked":
+            current["locked"] = True
+            current["lock_reason"] = value or None
+        elif key == "prunable":
+            current["prunable"] = True
+    if current:
+        entries.append(current)
+    return entries
+
+
+def is_squash_merged(repo, branch, base):
+    """True when the branch's changes are in base as a single squashed commit.
+
+    Replays the branch tree as one commit on top of the merge base, then asks
+    git whether that patch already exists in base. `git commit-tree` leaves a
+    dangling object behind, which git gc collects on its own.
+    """
+    code, merge_base = git(repo, "merge-base", f"origin/{base}", branch)
+    if code != 0 or not merge_base:
+        return False
+    code, tree = git(repo, "rev-parse", f"{branch}^{{tree}}")
+    if code != 0 or not tree:
+        return False
+    proc = subprocess.run(
+        (
+            "git",
+            "-C",
+            repo,
+            "commit-tree",
+            tree,
+            "-p",
+            merge_base,
+            "-m",
+            "_squash_probe",
+        ),
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return False
+    probe = proc.stdout.strip()
+    code, out = git(repo, "cherry", f"origin/{base}", probe)
+    if code != 0 or not out:
+        return False
+    # '-' means the patch is already upstream; '+' means it is not.
+    return all(line.startswith("-") for line in out.splitlines())
+
+
+def inspect_worktree(repo, wt, base, is_main):
+    """Gather state for one worktree and classify it."""
+    path = wt["path"]
+    branch = wt.get("branch")
+    info = {
+        "path": path,
+        "branch": branch,
+        "is_main_checkout": is_main,
+        "locked": wt["locked"],
+        "lock_reason": wt.get("lock_reason"),
+        "prunable": wt["prunable"],
+        "detached": wt["detached"],
+        "under_claude_worktrees": WORKTREE_MARKER in path,
+        "base": base,
+    }
+
+    code, status = git(path, "status", "--porcelain", raw=True)
+    if code != 0:
+        info["classification"] = "unknown"
+        info["reasons"] = ["git status failed — worktree directory missing or broken"]
+        return info
+    status_lines = [line for line in status.splitlines() if line.strip()]
+    info["dirty_files"] = len(status_lines)
+    info["untracked_files"] = sum(1 for line in status_lines if line.startswith("??"))
+
+    if status_lines:
+        _, stat = git(path, "diff", "--stat")
+        info["diff_stat"] = stat.splitlines()[-1] if stat else None
+        info["dirty_sample"] = [line[3:] for line in status_lines[:5]]
+
+    _, last = git(path, "log", "-1", "--format=%h%x1f%cI%x1f%s")
+    if last:
+        sha, iso, subject = (last.split("\x1f") + ["", "", ""])[:3]
+        info["last_commit"] = {"sha": sha, "date": iso, "subject": subject}
+        try:
+            age = datetime.now(UTC) - datetime.fromisoformat(iso)
+            info["age_days"] = age.days
+        except ValueError:
+            info["age_days"] = None
+
+    code, upstream = git(
+        path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"
+    )
+    info["upstream"] = upstream if code == 0 else None
+    info["ahead_of_upstream"] = None
+    if info["upstream"]:
+        code, counts = git(
+            path, "rev-list", "--left-right", "--count", f"{info['upstream']}...HEAD"
+        )
+        if code == 0 and counts:
+            behind, ahead = (counts.split() + ["0", "0"])[:2]
+            info["behind_upstream"] = int(behind)
+            info["ahead_of_upstream"] = int(ahead)
+
+    reasons = []
+    merged = False
+    if is_main:
+        # The main checkout is never a removal candidate, so its merge state is
+        # noise rather than information.
+        info["commits_ahead_of_base"] = None
+    elif base and branch:
+        code, _ = git(repo, "merge-base", "--is-ancestor", branch, f"origin/{base}")
+        if code == 0:
+            merged = True
+            reasons.append(f"merged into origin/{base} (ancestor)")
+        elif is_squash_merged(repo, branch, base):
+            merged = True
+            reasons.append(f"squash-merged into origin/{base}")
+        code, ahead = git(repo, "rev-list", "--count", f"origin/{base}..{branch}")
+        info["commits_ahead_of_base"] = (
+            int(ahead) if code == 0 and ahead.isdigit() else None
+        )
+    else:
+        info["commits_ahead_of_base"] = None
+    info["merged"] = merged
+
+    # Classification, most-blocking signal first.
+    if is_main:
+        info["classification"] = "main-checkout"
+        reasons.append("main checkout — never removed by cleanup")
+        if status_lines:
+            reasons.append(
+                f"{len(status_lines)} uncommitted file(s) sitting in the main checkout"
+            )
+    elif wt["locked"]:
+        info["classification"] = "locked"
+        reasons.append(
+            "worktree is locked"
+            + (f": {wt['lock_reason']}" if wt.get("lock_reason") else "")
+        )
+    elif status_lines:
+        info["classification"] = "wip-dirty"
+        reasons.append(
+            f"{len(status_lines)} uncommitted file(s), "
+            f"{info['untracked_files']} untracked"
+        )
+        if merged:
+            reasons.append(
+                "branch itself is merged — only these local files stand "
+                "in the way; review them, then this becomes removable"
+            )
+    elif info["detached"] or not branch:
+        info["classification"] = "unknown"
+        reasons.append("detached HEAD — no branch to judge against base")
+    elif merged:
+        # Merged wins over any ahead-of-upstream count: once the content is in
+        # base there is nothing left to lose, and a squash-merged branch always
+        # looks "ahead" of the base it tracks.
+        info["classification"] = "removable"
+    elif info["ahead_of_upstream"] is None and info.get("commits_ahead_of_base"):
+        info["classification"] = "wip-unpushed"
+        reasons.append(
+            f"never pushed — {info['commits_ahead_of_base']} commit(s) exist only here"
+        )
+    elif info["ahead_of_upstream"]:
+        info["classification"] = "wip-unpushed"
+        reasons.append(
+            f"{info['ahead_of_upstream']} commit(s) ahead of {info['upstream']}"
+        )
+    elif base is None:
+        info["classification"] = "unknown"
+        reasons.append("no base branch detected — cannot judge merge state")
+    elif info.get("commits_ahead_of_base") == 0:
+        info["classification"] = "removable"
+        reasons.append(f"no commits beyond origin/{base}")
+    else:
+        info["classification"] = "waiting"
+        reasons.append(
+            f"{info.get('commits_ahead_of_base')} commit(s) ahead of origin/{base}, "
+            "pushed but not merged — check the MR"
+        )
+
+    info["reasons"] = reasons
+    return info
+
+
+def inspect_repo(repo, do_fetch):
+    entry = {"repo": repo, "fetch_ok": None}
+    if do_fetch:
+        code, _ = git(repo, "fetch", "--prune", "--quiet", "origin")
+        entry["fetch_ok"] = code == 0
+        if code != 0:
+            entry["fetch_error"] = (
+                "fetch failed — offline or remote unreachable; merge state may be stale"
+            )
+
+    base = default_base(repo)
+    entry["base"] = base
+
+    code, stash = git(repo, "stash", "list")
+    entry["stash_count"] = (
+        len([line for line in stash.splitlines() if line.strip()]) if code == 0 else 0
+    )
+
+    worktrees = parse_worktrees(repo)
+    main_path = os.path.realpath(worktrees[0]["path"]) if worktrees else None
+    entry["worktrees"] = [
+        inspect_worktree(repo, wt, base, os.path.realpath(wt["path"]) == main_path)
+        for wt in worktrees
+    ]
+    return entry
+
+
+ICONS = {
+    "removable": "GREEN ",
+    "waiting": "YELLOW",
+    "wip-dirty": "RED   ",
+    "wip-unpushed": "RED   ",
+    "unknown": "?     ",
+    "locked": "LOCK  ",
+    "main-checkout": "MAIN  ",
+}
+
+
+def print_table(report):
+    for entry in report["repos"]:
+        base = entry["base"] or "unknown base"
+        fetch = "" if entry["fetch_ok"] in (True, None) else "  [fetch FAILED]"
+        print(f"\n=== {entry['repo']}  (base: {base}){fetch}")
+        if entry["stash_count"]:
+            print(
+                f"    ! {entry['stash_count']} stash entr(ies) in this repo — "
+                f"they survive worktree removal"
+            )
+        for wt in entry["worktrees"]:
+            name = os.path.basename(wt["path"])
+            print(
+                f"  {ICONS.get(wt['classification'], '      ')} {name:<38} "
+                f"{wt.get('branch') or '(detached)'}"
+            )
+            for reason in wt["reasons"]:
+                print(f"           {reason}")
+            if wt.get("diff_stat"):
+                print(f"           {wt['diff_stat']}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--root",
+        default=".",
+        help="directory holding the checkouts (default: current directory)",
+    )
+    parser.add_argument(
+        "--repo",
+        metavar="NAME",
+        help="limit the sweep to repos whose path contains NAME",
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="emit JSON instead of a table"
+    )
+    parser.add_argument(
+        "--no-fetch",
+        dest="fetch",
+        action="store_false",
+        help="skip `git fetch` (offline; merge state may be stale)",
+    )
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.root):
+        print(f"no such directory: {args.root}", file=sys.stderr)
+        return 1
+
+    repos = find_repos(args.root)
+    if args.repo:
+        repos = [r for r in repos if args.repo in r]
+        if not repos:
+            print(f"no repo under {args.root} matching {args.repo!r}", file=sys.stderr)
+            return 1
+    report = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "root": os.path.abspath(args.root),
+        "fetched": args.fetch,
+        "repos": [inspect_repo(r, args.fetch) for r in repos],
+    }
+
+    if args.json:
+        json.dump(report, sys.stdout, indent=2)
+        print()
+    else:
+        print_table(report)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

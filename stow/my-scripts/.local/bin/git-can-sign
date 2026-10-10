@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Exit 0 when a commit made here would carry a signature GitHub can verify,
+# non-zero otherwise. The one source of truth for "should this commit sign",
+# shared by the `lg` function in ~/.zshrc and the lazygit.nvim spec in
+# stow/nvim/.config/nvim/lua/plugins/lazygit.lua -- both force signing on via
+# GIT_CONFIG_* and both need the same guard.
+#
+# Why a guard at all: commit.gpgsign is off globally (see
+# ~/.config/git/core.gitconfig) so unattended agent sessions don't block on a
+# YubiKey touch, and GIT_CONFIG_* outranks even a repository's explicit
+# `gpgsign = false` -- it has the same precedence as `git -c`. Under
+# ~/dev/recombee the identity is an address the signing key carries no UID for,
+# so forcing signing there would produce commits GitHub reports as Unverified.
+# Comparing the repo's user.email against the key's own UIDs keeps that correct
+# by itself: add a UID to the key and signing starts working there with no
+# change here.
+# Optional argument: the directory to judge, for callers that are not already
+# sitting in the repository (lazygit.nvim opens a project root that need not be
+# Neovim's cwd). Defaults to the current directory.
+cd "${1:-.}" 2>/dev/null || exit 1
+
+key=$(git config --get user.signingkey 2>/dev/null) || exit 1
+email=$(git config --get user.email 2>/dev/null) || exit 1
+[[ -n $key && -n $email ]] || exit 1
+
+# The `!` suffix pins gpg to that exact subkey; gpg itself does not want it.
+gpg --list-keys --with-colons "${key%!}" 2>/dev/null \
+  | awk -F: '/^uid/ {print $10}' \
+  | grep -qiF "<$email>"

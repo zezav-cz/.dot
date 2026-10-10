@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# delta with its background and syntax theme matched to the current light/dark
+# preference, for callers that cannot re-read a config when the theme flips
+# (lazygit spawns its diff renderer per diff, so each invocation re-checks).
+#
+# This hooks into the same chain as Neovim (see
+# stow/nvim/.config/nvim/lua/theme.lua): the one source of truth for the desktop
+# is gsettings' org.gnome.desktop.interface color-scheme, foot-theme-watcher.sh
+# turns every change into ~/.config/foot/theme-mode.ini, and we read that file.
+# Reading the ini rather than calling gsettings keeps this to zero subprocesses
+# and works inside tmux, where terminal background queries are unreliable.
+#
+# foot's initial-color-theme: 1 is its dark [colors] block, 2 the light
+# [colors2] one. An unreadable or missing file falls back to dark, which is
+# both what theme-mode.ini ships as in the repo and the desktop default.
+#
+# Note this deliberately overrides $BAT_THEME: ~/.zshrc picks it once per
+# shell, so a shell older than the last toggle would hand delta the wrong one.
+THEME_MODE="${XDG_CONFIG_HOME:-$HOME/.config}/foot/theme-mode.ini"
+
+if grep -qs '^initial-color-theme=2' "$THEME_MODE"; then
+  exec delta --light --syntax-theme=gruvbox-light "$@"
+else
+  exec delta --dark --syntax-theme=gruvbox-dark "$@"
+fi
