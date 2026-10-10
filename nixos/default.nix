@@ -7,5 +7,11 @@
     ./users.nix
     ./home.nix
     ./shell.nix
+    ./desktop-sway.nix
+    ./greetd.nix
+    ./logind.nix
+    ./fonts.nix
+    ./security.nix
+    ./theme.nix
   ];
 }
