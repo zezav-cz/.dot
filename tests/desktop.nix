@@ -35,6 +35,9 @@ pkgs.testers.runNixOSTest {
         machine.wait_for_unit("multi-user.target")
         machine.succeed("test -s /run/secrets-for-users/user-password")
         machine.succeed("test \"$(id -u jantrojak)\" = 1001")
+        # private group with the Ubuntu gid: restored/9p files (gid 1001, umask
+        # 002 => group-writable) must not look foreign to zsh's compaudit
+        machine.succeed("test \"$(id -gn jantrojak):$(id -g jantrojak)\" = jantrojak:1001")
         machine.succeed("getent passwd jantrojak | grep -q /zsh$")
 
     with subtest("home-manager links dotfiles out of store"):

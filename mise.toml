@@ -54,3 +54,15 @@ description = "All Nix checks: lint, portable paths, list parity, VM desktop tes
 [tasks."nix:fmt"]
 run = "nix fmt"
 description = "Format all Nix files"
+
+[tasks.vm]
+run = "mkdir -p .vm && nix build -L .#nixosConfigurations.vm.config.system.build.vm -o .vm/result && .vm/result/bin/run-vm-vm"
+description = "Boot the NixOS desktop in QEMU (user jantrojak, password vm)"
+
+[tasks."vm:reset"]
+run = "rm -f .vm/vm.qcow2"
+description = "Delete the VM disk image (next `mise run vm` starts fresh)"
+
+[tasks."vm:test"]
+run = "mkdir -p .vm && nix build -L .#checks.x86_64-linux.desktop -o .vm/test && echo screenshot: .vm/test/desktop.png"
+description = "Headless NixOS test of the desktop"

@@ -70,7 +70,10 @@
       };
 
       nixosConfigurations = {
-        vm = mkHost [ ./hosts/vm ];
+        vm = mkHost [
+          ./hosts/vm
+          ./hosts/vm/interactive.nix
+        ];
       };
 
       checks.${system} = import ./checks {

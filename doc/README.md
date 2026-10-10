@@ -39,3 +39,4 @@ python3 install.py -v                   # verbose output
 - [distro-support.md](distro-support.md) -- multi-distro portability status
 - [tasks.md](tasks.md) -- personal task format in the vault and the `life` terminal browser
 - [hardcoded-paths.md](hardcoded-paths.md) -- tracked generated files with baked-in `/home/jan` paths, pending review
+- [nixos.md](nixos.md) -- the NixOS configuration: layout, dotfile linking, VM, checks, secrets
