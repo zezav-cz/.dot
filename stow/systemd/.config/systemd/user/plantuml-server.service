@@ -1,0 +1,15 @@
+[Unit]
+Description=Local PlantUML server (picoweb) for the VS Code Markdown preview
+Documentation=https://plantuml.com/picoweb
+
+[Service]
+Type=simple
+# plantuml and graphviz come from home.nix. jebbs.plantuml renders ```plantuml
+# fences in the Markdown preview only through a server; keeping it on
+# loopback means diagram sources never leave the machine.
+Environment=GRAPHVIZ_DOT=%h/.nix-profile/bin/dot
+ExecStart=%h/.nix-profile/bin/plantuml -picoweb:18123:127.0.0.1
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

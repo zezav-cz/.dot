@@ -1,0 +1,19 @@
+[Unit]
+Description=kanshi display profile daemon (output layout on login and hotplug)
+Documentation=man:kanshi(1) man:kanshi(5)
+# Bound to the sway session rather than default.target: kanshi needs
+# WAYLAND_DISPLAY, which sway pushes into the user manager just before it
+# restarts sway-session.target (see sway config.d/90-bar.conf). PartOf makes it
+# stop and restart together with that target.
+After=sway-session.target
+PartOf=sway-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env kanshi
+# kanshi exits 0 when the compositor goes away; only restart real crashes.
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=sway-session.target
