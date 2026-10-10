@@ -1,7 +1,7 @@
 # NixOS migration of the p15v laptop — design
 
 **Date:** 2026-10-10
-**Status:** Draft, awaiting review
+**Status:** Approved (amended while planning, see `docs/superpowers/plans/2026-10-10-nixos-migration.md` § Deviations)
 
 ## Goal
 
@@ -12,7 +12,7 @@ Move the ThinkPad P15v Gen 1 (hostname `p15v`) from Ubuntu 26.04 + ansible/insta
 - **Hybrid configs:** system, packages and look are in Nix; existing files under `stow/` are linked by home-manager with `mkOutOfStoreSymlink` into the `~/.dot` working copy, so editing them takes effect without a rebuild and they stay shared with Ubuntu until migration. Converting individual configs to native home-manager modules is a later, optional step.
 - **Disk:** declarative with disko — GPT, ESP + LUKS2 → btrfs subvolumes. No impermanence.
 - **Secrets:** sops-nix with age.
-- **Testing:** fast iteration loop via `build-vm` + a headless NixOS test in `nix flake check`, plus one scripted install rehearsal (nixos-anywhere/disko into an empty QEMU disk).
+- **Testing:** fast iteration loop via `build-vm` + a headless NixOS test in `nix flake check`, plus one scripted install rehearsal that runs the runbook's own `disko` + `nixos-install` commands from the installer ISO into an empty QEMU disk (the laptop has no second machine for nixos-anywhere, so the rehearsal uses the same procedure as the real install).
 - **Channel:** nixos-unstable, the same nixpkgs `home.nix` already uses.
 - **Task runner:** mise tasks (this repo's convention), not just.
 
@@ -32,10 +32,11 @@ flake.nix                 # + nixosConfigurations.{p15v,p15v-rehearsal,vm,iso}, 
 hosts/
   p15v/default.nix        # nixos-hardware (Intel CPU, NVIDIA PRIME offload), hostname, imports disko.nix
   p15v/disko.nix          # disk layout, device taken from an option
-  p15v/hardware.nix       # nixos-generate-config output, filled in at install
+  p15v/common.nix         # disko, snapper, bootloader, sops file (shared with the rehearsal)
+  p15v/hardware.nix       # nixos-generate-config --no-filesystems, generated on the Ubuntu host
   p15v-rehearsal.nix      # p15v + overrides: /dev/vda, no NVIDIA/nixos-hardware, virtio
   vm/default.nix          # build-vm variant: virtio-gpu GL, 8 GiB RAM, 4 vCPU, ~/.dot shared in
-  iso/default.nix         # minimal installer ISO: sshd with the user's key, flake snapshot, disko/nixos-anywhere tools
+  iso/default.nix         # minimal installer ISO: sshd with the user's key, flake + all input sources, disko, sops
 nixos/                    # system modules, one per former ansible role
   base.nix                # nix settings (flakes, gc, substituters), locale, tz, NetworkManager, systemd-boot
   users.nix               # jantrojak, zsh, groups, hashedPasswordFile from sops
@@ -44,13 +45,12 @@ nixos/                    # system modules, one per former ansible role
   logind.nix              # lid close on external power = ignore
   fonts.nix               # fonts.packages
   security.nix            # pcscd, YubiKey udev, gnupg agent, sops-nix wiring
-  snapper.nix             # hourly @home snapshots with rotation
-  theme.nix               # stylix gruvbox for GTK/Qt/cursor/greeter only
+  shell.nix               # zsh, ZSH/ZSH_CUSTOM -> oh-my-zsh + plugins from nixpkgs, direnv
+  theme.nix               # stylix gruvbox for the console and fontconfig only
 home/                     # home-manager modules (split of today's home.nix)
   default.nix             # imports; option dotfiles.root (default ~/.dot)
   packages.nix            # today's home.packages, unchanged
   dotfiles.nix            # mkOutOfStoreSymlink links into ${dotfiles.root}/stow
-  zsh.nix                 # ZSH / ZSH_CUSTOM pointing at oh-my-zsh + plugins from nixpkgs
 secrets/
   p15v.yaml, vm.yaml      # encrypted
   vm-test.agekey          # throwaway key, VM-only, committed on purpose
@@ -73,7 +73,7 @@ scripts/
 | `greetd` (+ getty conflict drop-in) | `services.greetd` with tuigreet |
 | `logind` | `services.logind` lid-switch-external-power = ignore |
 | `fonts` | `fonts.packages` from nixpkgs |
-| `shell` (oh-my-zsh clone, chsh) | `programs.zsh.enable`, user shell = zsh; oh-my-zsh and plugins from nixpkgs exposed via `ZSH`/`ZSH_CUSTOM` session variables; `.zshrc` adjusted to honour them (still works on Ubuntu) |
+| `shell` (oh-my-zsh clone, chsh) | `programs.zsh.enable`, user shell = zsh; oh-my-zsh and plugins from nixpkgs exposed via `ZSH`/`ZSH_CUSTOM` set by NixOS (`environment.variables`, since the stowed `.zshrc` does not source home-manager's session vars); `.zshrc` honours a preset `$ZSH` (still works on Ubuntu) |
 | `apps` | already in `home.nix` |
 | `vnotes`, `dev-repos`, `git-clone`, `mcp` | user data, not system state → `scripts/bootstrap-user` |
 | ssh-agent / YubiKey | `services.pcscd`, `hardware.gpgSmartcards`, YubiKey udev rules |
@@ -92,7 +92,7 @@ scripts/
 ### Interactive VM — `mise run vm`
 
 - Builds `nixosConfigurations.vm.config.system.build.vm` and runs it under QEMU/KVM with `virtio-vga-gl` and `-display gtk,gl=on`; falls back to `WLR_RENDERER=pixman` if host virgl fails.
-- The host's `~/.dot` is shared into the guest at `/home/jantrojak/.dot` (`virtualisation.sharedDirectories`), so out-of-store links resolve and host edits show up after `swaymsg reload`.
+- The host's `~/.dot` is shared into the guest at `/mnt/dot` (`virtualisation.sharedDirectories`) with `~/.dot` linked to it and `dotfiles.root = /mnt/dot`, so out-of-store links resolve and host edits show up after `swaymsg reload`.
 - Disk image lives in `./.vm/` (gitignored); `mise run vm:reset` deletes it.
 - Login goes through real greetd/tuigreet with the password from `secrets/vm.yaml`, exercising PAM and sops.
 
@@ -123,7 +123,7 @@ Known limits: the private `vn` input is fetched over SSH at evaluation time (fin
 
 - GPT; ESP 1 GiB vfat at `/boot` (systemd-boot).
 - LUKS2 `cryptroot` over the rest, `allowDiscards`.
-- btrfs, `compress=zstd,noatime`: `@root` → `/`, `@home` → `/home`, `@nix` → `/nix`, `@snapshots` → `/.snapshots`, `@swap` → 16 GiB swapfile.
+- btrfs, `compress=zstd,noatime`: `@root` → `/`, `@home` → `/home`, `@nix` → `/nix`, `@home-snapshots` → `/home/.snapshots` (where snapper's `home` config expects it), `@swap` → 16 GiB swapfile.
 - Device is an option: `/dev/nvme0n1` on p15v, `/dev/vda` in the rehearsal; the layout is otherwise identical.
 - snapper takes hourly `@home` snapshots with rotation; system rollback is NixOS generations.
 
@@ -139,10 +139,10 @@ v1 secrets: user password hash (`hashedPasswordFile`, `neededForUsers`), Wi-Fi p
 
 ### Install rehearsal — `mise run vm:rehearsal`
 
-- `nixosConfigurations.iso` builds a minimal ISO (sshd with the user's key, flake snapshot). The same ISO is the USB stick for the real install.
+- `nixosConfigurations.iso` builds a minimal ISO (sshd with the user's key, the flake at `/etc/dot` and the source of every `flake.lock` node, so the private `vn` input is never fetched). The same ISO is the USB stick for the real install; `iso-rehearsal` adds only a throwaway SSH key and a serial console.
 - `scripts/vm-rehearsal`:
   1. Creates an empty 64 GiB qcow2, boots the ISO under QEMU with port 2222 → 22.
-  2. Runs `nixos-anywhere --flake .#p15v-rehearsal` with `--extra-files` (host key) and `--disk-encryption-keys` (LUKS passphrase).
+  2. Over SSH runs exactly the runbook's Phase 1: passphrase to `/tmp/secret.key`, `disko --mode destroy,format,mount --flake /etc/dot#p15v-rehearsal`, host key into `/mnt/etc/ssh`, `nixos-install --flake /etc/dot#p15v-rehearsal`.
   3. Reboots from disk, enters the LUKS passphrase over the serial console.
   4. Verifies: greetd up, sops secrets decrypted, `/home` mounted from `@home`, snapper timer active.
 - Success criterion for migration readiness: the rehearsal passes end to end without manual steps other than starting it.
@@ -160,12 +160,12 @@ Written out as a checklist in `doc/nixos-migration.md`.
 **Phase 1 — install**
 
 1. Boot the installer ISO from USB, connect network.
-2. From the ISO itself: `disko-install --flake <repo>#p15v --disk main /dev/nvme0n1 --extra-files <host key dir>` (repo cloned, or the snapshot on the ISO when offline).
+2. From the ISO itself, the same commands the rehearsal runs: passphrase to `/tmp/secret.key`, `disko --mode destroy,format,mount --flake /etc/dot#p15v`, decrypt the host key (YubiKey) into `/mnt/etc/ssh`, `nixos-install --flake /etc/dot#p15v`.
 3. Reboot → LUKS passphrase → greetd.
 
 **Phase 2 — hardware verification (what the VM cannot cover)**
 
-NVIDIA: Sway on the Intel iGPU, `nvidia-offload` works, external monitor on DP-1 (if that port is wired to the NVIDIA GPU, handle with `WLR_DRM_DEVICES` — known risk). Wi-Fi, Bluetooth, PipeWire audio, brightness/media keys, suspend and lid on AC and battery, kanshi `docked`/`laptop`, YubiKey (ssh, gpg, pcscd), fwupd.
+NVIDIA (Pascal → `legacy_580`, closed module; sway needs `--unsupported-gpu` while the module is loaded): Sway on the Intel iGPU via a udev `/dev/dri/igpu` symlink in `WLR_DRM_DEVICES`, `nvidia-offload` works, external monitor on DP-1 (if that port is wired to the NVIDIA GPU, add the dGPU to `WLR_DRM_DEVICES` — known risk). Wi-Fi, Bluetooth, PipeWire audio, brightness/media keys, suspend and lid on AC and battery, kanshi `docked`/`laptop`, YubiKey (ssh, gpg, pcscd), fwupd.
 
 **Phase 3 — restore**
 
