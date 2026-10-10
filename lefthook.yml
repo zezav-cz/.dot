@@ -10,6 +10,9 @@ pre-commit:
     ruff-format:
       run: ruff format --check {staged_files}
       glob: "*.py"
+    nixfmt:
+      run: nix run --inputs-from . nixpkgs#nixfmt -- --check {staged_files}
+      glob: "*.nix"
 
 pre-push:
   commands:

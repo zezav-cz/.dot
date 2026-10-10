@@ -1,0 +1,9 @@
+# Recipients per secrets file. vm_test is a throwaway key committed on purpose
+# (secrets/vm-test.agekey): vm.yaml holds nothing real.
+keys:
+  - &vm_test age1w8xv27zdr23mxyr6actvxmr9wj8rp4cflcd9vc3yln9zctrteerscfq79w
+creation_rules:
+  - path_regex: secrets/vm\.yaml$
+    key_groups:
+      - age:
+          - *vm_test

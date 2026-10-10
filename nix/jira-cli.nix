@@ -37,7 +37,9 @@ buildGoModule rec {
   meta = {
     description = "Feature-rich interactive Jira command line tool";
     homepage = "https://github.com/ankitpokhrel/jira-cli";
-    license = { spdxId = "MIT"; };
+    license = {
+      spdxId = "MIT";
+    };
     mainProgram = "jira";
   };
 }

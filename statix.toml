@@ -1,0 +1,3 @@
+# Dotted option paths (home.username, home.stateVersion, ...) are the usual
+# NixOS/home-manager style; collapsing them into nested sets hurts grepping.
+disabled = [ "repeated_keys" ]

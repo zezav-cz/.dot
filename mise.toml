@@ -46,3 +46,11 @@ description = "Install git hooks via lefthook"
 [tasks.setup]
 depends = ["sync", "install-hooks"]
 description = "Bootstrap dev environment: sync deps and install git hooks"
+
+[tasks."nix:check"]
+run = "nix flake check -L"
+description = "All Nix checks: lint, portable paths, list parity, VM desktop test, p15v build"
+
+[tasks."nix:fmt"]
+run = "nix fmt"
+description = "Format all Nix files"

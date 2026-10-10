@@ -31,7 +31,9 @@ stdenv.mkDerivation rec {
   meta = {
     description = "Customizable status line formatter for Claude Code CLI";
     homepage = "https://github.com/sirmalloc/ccstatusline";
-    license = { spdxId = "MIT"; };
+    license = {
+      spdxId = "MIT";
+    };
     mainProgram = "ccstatusline";
   };
 }

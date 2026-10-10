@@ -11,3 +11,7 @@ __pycache__/
 # copy that landed under stow/ carries a store hash that stops resolving after
 # the next garbage collection.
 stow/systemd/.config/environment.d/10-home-manager.conf
+
+# QEMU disk images and rehearsal state (mise run vm, vm:rehearsal)
+/.vm/
+/result*

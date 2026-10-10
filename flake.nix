@@ -1,5 +1,5 @@
 {
-  description = "home-manager config mirroring global mise tools (stow/mise/.config/mise/config.toml)";
+  description = "p15v: NixOS system and home-manager user environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -17,23 +17,71 @@
       url = "git+ssh://git@github.com/zezav-cz/vn.git?ref=refs/tags/v0.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }:
     let
       system = "x86_64-linux";
+      inherit (nixpkgs) lib;
       pkgs = import nixpkgs {
         inherit system;
-        config.allowUnfree = true; # slack, obsidian, etc.
+        config.allowUnfree = true; # slack, obsidian, nvidia, etc.
       };
-    in {
+      homeArgs = import ./home/args.nix { inherit pkgs inputs; };
+      # Every host shares nixos/ and the one pkgs instance above.
+      mkHost =
+        modules:
+        lib.nixosSystem {
+          specialArgs = { inherit inputs self homeArgs; };
+          modules = [
+            { nixpkgs.pkgs = pkgs; }
+            ./nixos
+          ]
+          ++ modules;
+        };
+    in
+    {
       homeConfigurations."jantrojak" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = import ./home/args.nix { inherit pkgs inputs; };
+        extraSpecialArgs = homeArgs;
         modules = [
           ./home
           ./home/generic-linux.nix
         ];
       };
+
+      nixosConfigurations = {
+        vm = mkHost [ ./hosts/vm ];
+      };
+
+      checks.${system} = import ./checks {
+        inherit
+          pkgs
+          self
+          inputs
+          homeArgs
+          ;
+      };
+
+      formatter.${system} = pkgs.nixfmt-tree;
     };
 }
