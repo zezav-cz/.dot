@@ -66,3 +66,11 @@ description = "Delete the VM disk image (next `mise run vm` starts fresh)"
 [tasks."vm:test"]
 run = "mkdir -p .vm && nix build -L .#checks.x86_64-linux.desktop -o .vm/test && echo screenshot: .vm/test/desktop.png"
 description = "Headless NixOS test of the desktop"
+
+[tasks."vm:rehearsal"]
+run = "scripts/vm-rehearsal"
+description = "Full p15v install rehearsal in QEMU: ISO -> disko -> nixos-install -> LUKS boot -> checks (slow)"
+
+[tasks."migration:preflight"]
+run = "scripts/migration-preflight"
+description = "Read-only report of unpushed work and data to back up before the wipe"

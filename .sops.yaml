@@ -2,8 +2,30 @@
 # (secrets/vm-test.agekey): vm.yaml holds nothing real.
 keys:
   - &vm_test age1w8xv27zdr23mxyr6actvxmr9wj8rp4cflcd9vc3yln9zctrteerscfq79w
+  # throwaway: host key of the install rehearsal VM, private half committed
+  # in secrets/rehearsal/ on purpose (it only ever decrypts vm.yaml)
+  - &rehearsal age1k6s8skpcljcavst60hw959mnysqt34f4ag9zm7jv4rnye6rl5p9sqqayle
+  # p15v (scripts/p15v-secrets-init, secrets/p15v.recipients): the OpenPGP key
+  # on the YubiKey, the offline backup key (Bitwarden) and the laptop's host key
+  - &backup age1s3yy6aupe62sxm39xjuwutsw0dcrvh80vej7dhex79se6du62qtqeejssk
+  - &personal C6AF4B5C89248D71F08BDEFE8E93234FB281DEE6 # OpenPGP fingerprint
+  - &p15v age1w0qp69u7degkkpg87qdmfkvdm89a0s2mc93yrd9h2545eyywcyyqlfcrzs
 creation_rules:
   - path_regex: secrets/vm\.yaml$
     key_groups:
       - age:
           - *vm_test
+          - *rehearsal
+  - path_regex: secrets/p15v\.yaml$
+    key_groups:
+      - pgp:
+          - *personal
+        age:
+          - *backup
+          - *p15v
+  - path_regex: secrets/p15v-ssh-host-key\.enc$
+    key_groups:
+      - pgp:
+          - *personal
+        age:
+          - *backup

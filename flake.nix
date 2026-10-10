@@ -58,6 +58,16 @@
           ]
           ++ modules;
         };
+      mkIso =
+        modules:
+        lib.nixosSystem {
+          specialArgs = { inherit inputs self; };
+          modules = [
+            { nixpkgs.pkgs = pkgs; }
+            ./hosts/iso
+          ]
+          ++ modules;
+        };
     in
     {
       homeConfigurations."jantrojak" = home-manager.lib.homeManagerConfiguration {
@@ -74,6 +84,10 @@
           ./hosts/vm
           ./hosts/vm/interactive.nix
         ];
+        p15v = mkHost [ ./hosts/p15v ];
+        p15v-rehearsal = mkHost [ ./hosts/p15v-rehearsal.nix ];
+        iso = mkIso [ ];
+        iso-rehearsal = mkIso [ ./hosts/iso/rehearsal.nix ];
       };
 
       checks.${system} = import ./checks {

@@ -131,7 +131,7 @@ Known limits: the private `vn` input is fetched over SSH at evaluation time (fin
 
 Recipients (`.sops.yaml`):
 
-- **Personal:** `age-plugin-yubikey` identity plus an offline backup age key.
+- **Personal:** the OpenPGP key on the YubiKey (sops supports PGP natively; PIV, which `age-plugin-yubikey` needs, stays disabled per `doc/yubikey.md`) plus an offline backup age key kept in Bitwarden.
 - **p15v host:** age key derived from `/etc/ssh/ssh_host_ed25519_key`. The host key is generated before install, stored encrypted, and placed by the installer (`--extra-files`) so secrets decrypt on first boot.
 - **VM:** throwaway `secrets/vm-test.agekey`, the only recipient of `secrets/vm.yaml`; contains no real data.
 

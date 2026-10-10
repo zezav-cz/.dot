@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""Install rehearsal for p15v, end to end, in QEMU.
+
+Boots the rehearsal ISO on an empty disk, runs the same disko + nixos-install
+commands doc/nixos-migration.md prescribes for the laptop (against
+#p15v-rehearsal), reboots from disk, types the LUKS passphrase on the serial
+console and checks the installed system. Exit 0 only if every check passes.
+Takes long: the system is built inside the VM, as on the real install.
+"""
+
+import shutil
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+WORK = REPO / ".vm" / "rehearsal"
+DISK = WORK / "disk.qcow2"
+VARS = WORK / "OVMF_VARS.fd"
+SERIAL = WORK / "serial.sock"
+CLIENT_KEY = REPO / "secrets/rehearsal/id_ed25519"
+HOST_KEY = REPO / "secrets/rehearsal/ssh_host_ed25519_key"
+PASSPHRASE = "rehearsal"  # throwaway LUKS passphrase
+PORT = "2222"
+FLAKE_ON_ISO = "/etc/dot#p15v-rehearsal"
+SSH_OPTS = [
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=/dev/null",
+    "-o", "LogLevel=ERROR",
+]  # fmt: skip
+
+
+def run(*cmd: str, capture: bool = False) -> str:
+    print("+", " ".join(cmd), flush=True)
+    res = subprocess.run(cmd, check=True, text=True, capture_output=capture)
+    return res.stdout.strip() if capture else ""
+
+
+def build(installable: str) -> Path:
+    out = run(
+        "nix", "build", "--no-link", "--print-out-paths",
+        "--inputs-from", str(REPO), installable,
+        capture=True,
+    )  # fmt: skip
+    return Path(out.splitlines()[0])
+
+
+def ssh_args() -> list[str]:
+    return ["ssh", "-p", PORT, "-i", str(CLIENT_KEY), *SSH_OPTS, "root@localhost"]
+
+
+def remote(cmd: str) -> None:
+    run(*ssh_args(), cmd)
+
+
+def poweroff() -> None:
+    # the connection drops mid-command; a non-zero ssh exit is expected here
+    subprocess.run([*ssh_args(), "poweroff"], capture_output=True)
+
+
+def wait_ssh(timeout: int) -> None:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if subprocess.run([*ssh_args(), "true"], capture_output=True).returncode == 0:
+            return
+        time.sleep(5)
+    sys.exit(f"ssh on port {PORT} not up after {timeout}s")
+
+
+def qemu(qemu_bin: Path, ovmf: Path, iso: Path | None) -> subprocess.Popen[bytes]:
+    args = [
+        str(qemu_bin / "bin/qemu-system-x86_64"), "-enable-kvm", "-machine", "q35",
+        "-cpu", "host", "-m", "8192", "-smp", "8",
+        "-drive", f"if=pflash,format=raw,readonly=on,file={ovmf / 'FV/OVMF_CODE.fd'}",
+        "-drive", f"if=pflash,format=raw,file={VARS}",
+        "-drive", f"file={DISK},if=virtio,format=qcow2",
+        "-nic", f"user,model=virtio-net-pci,hostfwd=tcp::{PORT}-:22",
+        "-serial", f"unix:{SERIAL},server,nowait",
+        "-display", "none",
+    ]  # fmt: skip
+    if iso:
+        args += ["-cdrom", str(iso)]
+    print("+ qemu", "(with ISO)" if iso else "(from disk)", flush=True)
+    return subprocess.Popen(args)
+
+
+def unlock_luks(timeout: int) -> None:
+    """Type the passphrase at systemd's prompt; re-type if the prompt returns."""
+    deadline = time.time() + timeout
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    while True:
+        try:
+            sock.connect(str(SERIAL))
+            break
+        except OSError:
+            if time.time() > deadline:
+                sys.exit("serial console never came up")
+            time.sleep(1)
+    sock.settimeout(5)
+    prompt = b"press tab for no echo"
+    seen = b""
+    sent = 0
+    while time.time() < deadline:
+        try:
+            seen = (seen + sock.recv(4096))[-8192:]
+        except TimeoutError:
+            continue
+        if seen.lower().count(prompt) > sent:
+            if sent == 3:
+                sys.exit("LUKS passphrase rejected three times")
+            # the agent redraws the prompt right after printing it; typing
+            # into that redraw loses the input
+            time.sleep(3)
+            sock.sendall(PASSPHRASE.encode() + b"\n")
+            sent += 1
+            print(f"LUKS passphrase sent ({sent})", flush=True)
+        elif sent and b"reached target" in seen.lower().split(prompt)[-1]:
+            sock.close()
+            return
+    sys.exit("no LUKS passphrase prompt on the serial console")
+
+
+def stop(vm: subprocess.Popen[bytes], timeout: int) -> None:
+    try:
+        vm.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        vm.kill()
+
+
+def main() -> int:
+    shutil.rmtree(WORK, ignore_errors=True)
+    WORK.mkdir(parents=True)
+    qemu_bin = build("nixpkgs#qemu_kvm")
+    ovmf = build("nixpkgs#OVMF.fd")
+    iso_dir = build(
+        f"{REPO}#nixosConfigurations.iso-rehearsal.config.system.build.isoImage"
+    )
+    iso = next((iso_dir / "iso").glob("*.iso"))
+    shutil.copy(ovmf / "FV/OVMF_VARS.fd", VARS)
+    VARS.chmod(0o644)
+    run(str(qemu_bin / "bin/qemu-img"), "create", "-f", "qcow2", str(DISK), "64G")
+
+    vm = qemu(qemu_bin, ovmf, iso)
+    try:
+        wait_ssh(300)
+        # The ISO must evaluate the flake without GitHub (private `vn` input).
+        remote("nix flake metadata --offline /etc/dot >/dev/null")
+        # --- the same steps as doc/nixos-migration.md, Phase 1 ---
+        remote(f"printf %s {PASSPHRASE} > /tmp/secret.key")
+        remote(
+            "disko --mode destroy,format,mount --yes-wipe-all-disks "
+            f"--flake {FLAKE_ON_ISO}"
+        )
+        remote("install -d -m 755 /mnt/etc/ssh")
+        run(
+            "scp", "-P", PORT, "-i", str(CLIENT_KEY), *SSH_OPTS,
+            str(HOST_KEY), f"{HOST_KEY}.pub", "root@localhost:/mnt/etc/ssh/",
+        )  # fmt: skip
+        remote("chmod 600 /mnt/etc/ssh/ssh_host_ed25519_key")
+        remote(f"nixos-install --no-root-passwd --flake {FLAKE_ON_ISO}")
+        poweroff()
+        stop(vm, 120)
+    finally:
+        if vm.poll() is None:
+            vm.kill()
+
+    vm = qemu(qemu_bin, ovmf, None)
+    try:
+        unlock_luks(600)
+        wait_ssh(600)
+        checks = {
+            "greetd running": "systemctl is-active greetd.service",
+            "sops password decrypted": "test -s /run/secrets-for-users/user-password",
+            "/home on @home": "findmnt -no OPTIONS /home | grep -q 'subvol=/@home'",
+            "LUKS mapping active": "cryptsetup status cryptroot | grep -q 'is active'",
+            "swapfile on": "swapon --show=NAME --noheadings | grep -q swapvol/swapfile",
+            "snapper timer": "systemctl is-active snapper-timeline.timer",
+            "home-manager": "systemctl is-active home-manager-jantrojak.service",
+        }
+        failed = []
+        for name, cmd in checks.items():
+            ok = subprocess.run([*ssh_args(), cmd], capture_output=True).returncode == 0
+            print(f"{'PASS' if ok else 'FAIL'}  {name}", flush=True)
+            if not ok:
+                failed.append(name)
+        poweroff()
+        return 1 if failed else 0
+    finally:
+        stop(vm, 60)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -6,7 +6,7 @@ Runbook for wiping the ThinkPad P15v (Ubuntu) and installing the NixOS configura
 
 - [ ] `nix flake check -L` is green on the commit you will install (`mise run nix:check`).
 - [ ] `mise run vm:rehearsal` exits 0 on that commit.
-- [ ] `secrets/p15v.yaml` and `secrets/p15v-ssh-host-key.enc` exist (`scripts/p15v-secrets-init`) and `sops decrypt secrets/p15v.yaml` works with the YubiKey.
+- [ ] `secrets/p15v.yaml` and `secrets/p15v-ssh-host-key.enc` exist (`scripts/p15v-secrets-init`) and `sops decrypt secrets/p15v.yaml` works with the YubiKey (OpenPGP). Without the YubiKey, the backup age key from Bitwarden decrypts both: `SOPS_AGE_KEY_FILE=<file with it> sops decrypt …`.
 - [ ] The offline backup age key is retrievable from Bitwarden.
 - [ ] `mise run migration:preflight` shows no repo with unpushed or uncommitted work you still need (push or bundle them first).
 - [ ] The restic backup below is done and a sample restore was verified.
@@ -40,9 +40,10 @@ read -rs PASS; printf %s "$PASS" > /tmp/secret.key; unset PASS
 
 disko --mode destroy,format,mount --yes-wipe-all-disks --flake /etc/dot#p15v
 
-# host key: sops decrypts it with the YubiKey identity (PIN + touch)
-age-plugin-yubikey --identity > /tmp/id.txt
-export SOPS_AGE_KEY_FILE=/tmp/id.txt
+# host key: encrypted to the OpenPGP key on the YubiKey (card PIN when asked)
+gpg --import /etc/dot/keys/jantrojak-pgp.asc
+gpg --card-status >/dev/null              # creates the card stubs for the subkeys
+export GPG_TTY=$(tty)
 install -d -m 755 /mnt/etc/ssh
 sops decrypt --input-type binary --output-type binary /etc/dot/secrets/p15v-ssh-host-key.enc > /mnt/etc/ssh/ssh_host_ed25519_key
 cp /etc/dot/secrets/p15v-ssh-host-key.pub /mnt/etc/ssh/ssh_host_ed25519_key.pub

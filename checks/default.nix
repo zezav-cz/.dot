@@ -34,6 +34,25 @@
     touch $out
   '';
 
+  # Facts about the laptop config that must hold before it ever boots.
+  p15v-layout =
+    let
+      c = self.nixosConfigurations.p15v.config;
+      inherit (pkgs) lib;
+    in
+    assert lib.elem "subvol=@home" c.fileSystems."/home".options;
+    assert lib.elem "subvol=@nix" c.fileSystems."/nix".options;
+    assert c.fileSystems ? "/home/.snapshots";
+    assert c.boot.initrd.luks.devices ? cryptroot;
+    assert c.boot.initrd.luks.devices.cryptroot.allowDiscards;
+    assert c.console.keyMap == "us";
+    assert !c.hardware.nvidia.open;
+    assert lib.elem "--unsupported-gpu" c.programs.sway.extraOptions;
+    assert c.services.snapper.configs ? home;
+    pkgs.runCommand "p15v-layout" { } "touch $out";
+
+  p15v-toplevel = self.nixosConfigurations.p15v.config.system.build.toplevel;
+
   desktop = import ../tests/desktop.nix {
     inherit
       pkgs
