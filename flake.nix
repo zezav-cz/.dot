@@ -3,6 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Bazel 9.0.1 only: unstable's bazel_9 has moved on to 9.1.1 and there is
+    # no 9.0.x attribute left, so the version is pinned by pinning the nixpkgs
+    # revision that last shipped it. Bump this rev (not the version) if 9.0.1
+    # ever needs a rebuild against newer deps.
+    nixpkgs-bazel.url = "github:NixOS/nixpkgs/01fbdeef22b76df85ea168fbfe1bfd9e63681b30";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";

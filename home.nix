@@ -50,6 +50,16 @@ let
   # Note 1.133.0 rebuilt from current nixpkgs fails too -- this is a packaging
   # regression, not a VS Code version issue, so pinning the version does NOT
   # help. Drop this once nixpkgs ships node_modules.asar.unpacked again.
+  # logcli can print its own zsh completion (kingpin's --completion-script-zsh)
+  # but grafana-loki doesn't install one. Generating it at build time puts
+  # _logcli in ~/.nix-profile/share/zsh/site-functions, already on .zshrc's
+  # fpath, so it follows the logcli version with no ~/.zfunc postinstall step.
+  logcli-zsh-completion = pkgs.runCommand "logcli-zsh-completion" { } ''
+    mkdir -p $out/share/zsh/site-functions
+    ${pkgs.grafana-loki}/bin/logcli --completion-script-zsh \
+      > $out/share/zsh/site-functions/_logcli
+  '';
+
   vscode-fixed = pkgs.vscode.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
       app="$out/lib/vscode/resources/app"
@@ -90,14 +100,24 @@ in
     gh
     glab
     grafana-loki # logcli
+    logcli-zsh-completion
+    lnav
     kubernetes-helm # helm
     k9s
     krew
     kubectl
     kubectx # also provides kubens
     neovim
+    # nvim-treesitter's `main` branch compiles every parser by shelling
+    # out to `tree-sitter build`, so the CLI is a hard runtime dep of the
+    # editor config (stow/nvim/.config/nvim/lua/plugins/nvim_treesitter.lua).
+    tree-sitter
     nodejs # node
     pandoc
+    # pandoc's default PDF engine is pdflatex; scheme-small covers every
+    # package its default LaTeX template pulls in, so `pandoc x.md -o x.pdf`
+    # works without --pdf-engine.
+    texliveSmall
     pgcli
     python312 # python
     go-task # task
@@ -106,6 +126,7 @@ in
     go_1_25 # go
     lazygit
     awscli2 # aws
+    stu # S3 TUI browser; reads profiles/SSO from ~/.aws
     fx
     aws-cdk-cli # npm:aws-cdk
     google-cloud-sdk # gcloud
@@ -127,7 +148,9 @@ in
     nix-zsh-completions
     dive
     bettercap
-    bazel_9 # bazel — pin the major; plain `bazel` still resolves to 7.x
+    yubikey-manager # ykman — YubiKey CLI; PIV/OATH need a running pcscd
+    pre-commit
+    inputs.nixpkgs-bazel.legacyPackages.${pkgs.system}.bazel_9 # bazel 9.0.1 — see flake.nix
 
     # GUI apps — migrated off ansible/roles/apps (AppImage/tarball + hand
     # rolled .desktop entries, see ansible/roles/apps/vars/main.yml and
@@ -141,9 +164,20 @@ in
     obsidian
     headlamp
     signal-desktop
+    bitwarden-desktop
     vscode-fixed
     claude-desktop-personal
     claude-desktop-work
+    glow
+    yt-dlp
+    # PlantUML for the VS Code jebbs.plantuml extension (.puml files and
+    # ```plantuml fences in the Markdown preview); everything except
+    # sequence diagrams needs Graphviz `dot` for layout.
+    plantuml
+    graphviz
+    # rsvg-convert: pandoc's LaTeX path turns the SVGs that the diagram.lua
+    # filter (stow/pandoc) gets from plantuml into PDFs.
+    librsvg
   ];
 
   programs.home-manager.enable = true;
