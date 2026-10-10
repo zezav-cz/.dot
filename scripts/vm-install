@@ -3,6 +3,9 @@
 # "Virtual run"): a QEMU window with the plain NixOS minimal ISO, an empty
 # 64 GB disk and UEFI, just like the laptop. The disk persists in .vm/install/
 # across runs (after stage 1 the VM boots from it); --reset starts over.
+# Stage 2 is done from the host over SSH with agent forwarding, so the private
+# vn input is fetched with your real keys without copying them into the VM:
+#   ssh -A -p 2223 jantrojak@localhost
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -25,5 +28,5 @@ exec "$q/bin/qemu-system-x86_64" -enable-kvm -machine q35 -cpu host -m 8192 -smp
   -drive "if=pflash,format=raw,file=$w/OVMF_VARS.fd" \
   -drive "file=$w/disk.qcow2,if=virtio,format=qcow2" \
   -cdrom "$iso" \
-  -nic user,model=virtio-net-pci \
+  -nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:2223-:22 \
   -device virtio-vga-gl -display gtk,gl=on

@@ -120,12 +120,13 @@ install -m 600 "$tmp/hostkey" /mnt/etc/ssh/ssh_host_ed25519_key
 cp "$host_pub" /mnt/etc/ssh/ssh_host_ed25519_key.pub
 nixos-install --no-root-passwd --flake "$repo#$target"
 
-say "Stage 1 done. Next:"
+say "Stage 1 done. Next (doc/nixos-migration.md, Phase 2):"
 cat <<EOF
   reboot                      # remove the USB stick / ISO; LUKS passphrase at boot
-  # log in on the console as jantrojak, then:
+  # log in as jantrojak; restore ~/.ssh from the backup (the private vn
+  # input is fetched with your SSH key), then:
   git clone https://github.com/zezav-cz/.dot ~/.dot
-  # build as you (Nix refuses a root-read of a repo you own), activate as root
+  # build as you (your SSH key; Nix refuses a root-read of your repo), activate as root
   nixos-rebuild switch --sudo --flake ~/.dot#${target%-base}
   reboot                      # -> tuigreet -> sway
 EOF

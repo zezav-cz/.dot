@@ -12,10 +12,11 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # our own repo (public, fetched over HTTPS so root and the installer need no
-    # SSH key); has its own flake.nix (packages.default via buildGoModule)
+    # private repo, has its own flake.nix (packages.default via buildGoModule).
+    # Fetched with the user's SSH key: on a fresh install restore ~/.ssh before
+    # the first full rebuild (doc/nixos-migration.md, stage 2).
     vn = {
-      url = "git+https://github.com/zezav-cz/vn.git?ref=refs/tags/v0.1.0";
+      url = "git+ssh://git@github.com/zezav-cz/vn.git?ref=refs/tags/v0.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     disko = {

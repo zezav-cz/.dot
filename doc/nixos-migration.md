@@ -62,29 +62,42 @@ Then `reboot` and remove the stick. At boot: LUKS passphrase, then the text logi
 
 ## Phase 2 — stage 2 on the installed system
 
-Log in as `jantrojak`. Wi-Fi `home` connects by itself (from the secrets); elsewhere use `nmcli device wifi connect <ssid> --ask`.
+Log in as `jantrojak` on the text console. Wi-Fi `home` connects by itself (from the secrets); elsewhere use `nmcli device wifi connect <ssid> --ask`.
+
+The private `vn` flake input is fetched over SSH with your key, so `~/.ssh` comes back from the backup first. Plug in the backup disk:
+
+```bash
+lsblk                                     # the backup disk, e.g. /dev/sdX1
+sudo mount /dev/sdX1 /mnt
+R=/mnt/p15v-restic
+restic() { nix shell nixpkgs#restic -c restic -r "$R" "$@"; }
+restic restore latest --target / --include ~/.ssh
+eval "$(ssh-agent)" && ssh-add ~/.ssh/keys/id_ed25519   # or the key GitHub knows
+ssh -T git@github.com                     # "successfully authenticated"
+```
+
+Then the desktop:
 
 ```bash
 git clone https://github.com/zezav-cz/.dot ~/.dot
-# builds as you (Nix refuses to read a repo you own as root), activates as root
+# builds as you (your SSH key fetches vn; Nix refuses to read your repo as
+# root), activates as root
 nixos-rebuild switch --sudo --flake ~/.dot#p15v
-reboot                                   # -> tuigreet -> sway
 ```
 
-The first build downloads a lot and compiles the few local packages (NVIDIA module, claude-desktop, vn). After the reboot you get the full desktop; the dotfile links point at `~/.dot`.
+The first build downloads a lot and compiles the few local packages (NVIDIA module, claude-desktop, vn).
 
-## Phase 3 — restore
+## Phase 3 — restore the rest
 
-Mount the backup disk; NixOS mounts removable media under `/run/media`:
+Still on the console, with the backup disk mounted:
 
 ```bash
-udisksctl mount -b /dev/sdX1              # or: sudo mount /dev/sdX1 /mnt
-R=/run/media/$USER/<disk>/p15v-restic     # (or /mnt/p15v-restic)
-restic() { nix shell nixpkgs#restic -c restic -r "$R" "$@"; }
-restic restore latest --target / --include ~/.ssh --include ~/.gnupg --include ~/.aws --include ~/.kube --include ~/.config/gcloud --include ~/.claude --include ~/.claude-personal --include ~/.config/Claude-personal --include ~/.config/Claude-work --include ~/ops/vnotes
+restic restore latest --target / --include ~/.gnupg --include ~/.aws --include ~/.kube --include ~/.config/gcloud --include ~/.claude --include ~/.claude-personal --include ~/.config/Claude-personal --include ~/.config/Claude-work --include ~/ops/vnotes
 git -C ~/.dot remote set-url origin git@github.com:zezav-cz/.dot.git
 nixos-rebuild switch --sudo --flake ~/.dot#p15v   # relinks what the restore replaced
 ~/.dot/scripts/bootstrap-user              # repo clones, vnotes, MCP servers
+sudo umount /mnt
+reboot                                     # -> tuigreet -> sway
 ```
 
 The backup contains the old stow symlinks inside `~/.gnupg`, `~/.claude` and `~/.claude-personal`. Restoring replaces the home-manager links there; the switch above moves the restored ones aside as `*.hm-backup` and relinks. If a later switch fails with "would be clobbered" because a `.hm-backup` already exists, delete the stale `.hm-backup` files and switch again.
@@ -115,25 +128,30 @@ Firefox: the old profile is under `~/snap/firefox/common/.mozilla/firefox/` in t
 
 ## Virtual run
 
-The same two stages by hand in a VM, with the VM targets: `install-base --vm` installs `p15v-rehearsal-base` to `/dev/vda` with the throwaway VM secrets (login password `vm`) and the rehearsal host key, so no YubiKey is needed.
+The same two stages by hand in a VM, with the VM targets: `install-base --vm` installs `p15v-rehearsal-base` to `/dev/vda` with the throwaway VM secrets (login and sudo password `vm`) and the rehearsal host key, so no YubiKey is needed.
 
 ```bash
 mise run vm:install          # QEMU window: NixOS ISO + empty 64 GB disk (UEFI)
 ```
 
-In the VM:
+Stage 1, in the QEMU window:
 
 ```bash
 sudo -i
 git clone https://github.com/zezav-cz/.dot /tmp/dot
 /tmp/dot/scripts/install-base --vm       # login password: vm; any LUKS passphrase
 reboot                                   # boots the installed disk
-# LUKS prompt: the VM variant shows it on the serial console, so in the QEMU
-# window open View -> serial0 (Ctrl+Alt+2), type it there, then back with Ctrl+Alt+1
-# log in as jantrojak / vm
+```
+
+The VM variant shows the LUKS prompt on the serial console: in the QEMU window open View → serial0 (Ctrl+Alt+2), type the passphrase there, and go back with Ctrl+Alt+1.
+
+Stage 2, from a terminal on your Ubuntu host: instead of restoring `~/.ssh` into the VM, SSH in with agent forwarding, so `vn` is fetched with your real keys without copying them anywhere (key confirmations pop up on your desktop as usual):
+
+```bash
+ssh -A -p 2223 jantrojak@localhost       # port 2223 is forwarded to the VM
 git clone https://github.com/zezav-cz/.dot ~/.dot
 nixos-rebuild switch --sudo --flake ~/.dot#p15v-rehearsal   # sudo password: vm
-reboot                                   # -> tuigreet -> sway
+sudo reboot                              # QEMU window: LUKS on serial0 again, then tuigreet -> sway
 ```
 
 The disk persists across `mise run vm:install` runs; `mise run vm:install:reset` starts over. The VM clones from GitHub, so it tests what is pushed.

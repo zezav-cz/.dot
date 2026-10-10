@@ -12,6 +12,7 @@ VM, as on the real install.
 """
 
 # ruff: noqa: E501  -- the check tables hold shell commands; wrapping them hurts reading
+import os
 import shutil
 import socket
 import subprocess
@@ -208,6 +209,23 @@ def main() -> int:
             }
         )
         # --- stage 2: clone as the user, build as the user, activate as root ---
+        # On the laptop the user fetches the private vn input with their SSH
+        # key (restored from the backup first). The rehearsal cannot confirm
+        # that key unattended, so it hands over the source this machine
+        # already fetched; Nix then uses it instead of fetching.
+        vn = run(
+            "nix", "eval", "--raw", "--impure", "--expr",
+            f'(builtins.getFlake "git+file://{REPO}").inputs.vn.outPath',
+            capture=True,
+        )  # fmt: skip
+        subprocess.run(
+            ["nix", "copy", "--to", "ssh-ng://root@localhost", vn],
+            check=True,
+            env={
+                **os.environ,
+                "NIX_SSHOPTS": " ".join(["-p", PORT, "-i", str(CLIENT_KEY), *SSH_OPTS]),
+            },
+        )
         upload(BUNDLE, "/tmp/dot.bundle")
         remote("chmod 644 /tmp/dot.bundle")
         remote(
