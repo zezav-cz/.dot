@@ -69,7 +69,15 @@ description = "Headless NixOS test of the desktop"
 
 [tasks."vm:rehearsal"]
 run = "scripts/vm-rehearsal"
-description = "Full p15v install rehearsal in QEMU: ISO -> disko -> nixos-install -> LUKS boot -> checks (slow)"
+description = "Automated two-stage p15v install in QEMU: ISO -> install-base -> clone + rebuild -> checks (slow)"
+
+[tasks."vm:install"]
+run = "scripts/vm-install"
+description = "Your own virtual run of the install: QEMU window with the plain NixOS ISO and an empty disk"
+
+[tasks."vm:install:reset"]
+run = "scripts/vm-install --reset"
+description = "Same, starting over with an empty disk"
 
 [tasks."migration:preflight"]
 run = "scripts/migration-preflight"

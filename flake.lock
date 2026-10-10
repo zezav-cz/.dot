@@ -499,12 +499,12 @@
         "rev": "b671d8d6900fcd9a5c99c006f61b85826471c2c5",
         "revCount": 12,
         "type": "git",
-        "url": "ssh://git@github.com/zezav-cz/vn.git"
+        "url": "https://github.com/zezav-cz/vn.git"
       },
       "original": {
         "ref": "refs/tags/v0.1.0",
         "type": "git",
-        "url": "ssh://git@github.com/zezav-cz/vn.git"
+        "url": "https://github.com/zezav-cz/vn.git"
       }
     }
   },

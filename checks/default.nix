@@ -54,6 +54,25 @@
     assert lib.elem inputs.vn.outPath (map toString c.system.extraDependencies);
     pkgs.runCommand "p15v-layout" { } "touch $out";
 
+  # Stage 1 of the install: same disk, boot and user as p15v, but no desktop
+  # and no home-manager, so it installs fast from the plain NixOS ISO.
+  p15v-base-layout =
+    let
+      base = self.nixosConfigurations.p15v-base.config;
+      full = self.nixosConfigurations.p15v.config;
+      inherit (pkgs) lib;
+      fsOf = c: lib.mapAttrs (_: f: f.options) c.fileSystems;
+    in
+    assert fsOf base == fsOf full;
+    assert base.boot.initrd.luks.devices ? cryptroot;
+    assert base.users.users.jantrojak.uid == 1001;
+    assert base.sops.defaultSopsFile == full.sops.defaultSopsFile;
+    assert base.networking.networkmanager.ensureProfiles.profiles ? home;
+    assert lib.elem pkgs.git base.environment.systemPackages;
+    assert !base.services.greetd.enable;
+    assert !(base ? home-manager);
+    pkgs.runCommand "p15v-base-layout" { } "touch $out";
+
   p15v-toplevel = self.nixosConfigurations.p15v.config.system.build.toplevel;
 
   desktop = import ../tests/desktop.nix {

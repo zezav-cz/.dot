@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Install rehearsal for p15v, end to end, in QEMU.
+"""Install rehearsal for p15v, end to end, in QEMU: the two stages of
+doc/nixos-migration.md with the VM targets.
 
-Boots the rehearsal ISO on an empty disk, runs the same disko + nixos-install
-commands doc/nixos-migration.md prescribes for the laptop (against
-#p15v-rehearsal), reboots from disk, types the LUKS passphrase on the serial
-console and checks the installed system. Exit 0 only if every check passes.
-Takes long: the system is built inside the VM, as on the real install.
+Stage 1: boot the plain NixOS ISO on an empty disk, clone the repo (HEAD, as a
+git bundle) and run scripts/install-base --vm, reboot and unlock LUKS on the
+serial console. Stage 2: clone the repo as the user on the installed system,
+build p15v-rehearsal as the user and activate it as root (what
+`nixos-rebuild switch --sudo` does), reboot again, check the desktop system.
+Exit 0 only if every check passes. Takes long: the system is built inside the
+VM, as on the real install.
 """
 
+# ruff: noqa: E501  -- the check tables hold shell commands; wrapping them hurts reading
 import shutil
 import socket
 import subprocess
@@ -23,8 +27,9 @@ SERIAL = WORK / "serial.sock"
 CLIENT_KEY = REPO / "secrets/rehearsal/id_ed25519"
 HOST_KEY = REPO / "secrets/rehearsal/ssh_host_ed25519_key"
 PASSPHRASE = "rehearsal"  # throwaway LUKS passphrase
+LOGIN_PASSWORD = "vm"  # user-password in secrets/vm.yaml
 PORT = "2222"
-FLAKE_ON_ISO = "/etc/dot#p15v-rehearsal"
+BUNDLE = WORK / "dot.bundle"
 SSH_OPTS = [
     "-o", "StrictHostKeyChecking=no",
     "-o", "UserKnownHostsFile=/dev/null",
@@ -53,6 +58,36 @@ def ssh_args() -> list[str]:
 
 def remote(cmd: str) -> None:
     run(*ssh_args(), cmd)
+
+
+def upload(src: Path, dst: str) -> None:
+    run(
+        "scp",
+        "-P",
+        PORT,
+        "-i",
+        str(CLIENT_KEY),
+        *SSH_OPTS,
+        str(src),
+        f"root@localhost:{dst}",
+    )
+
+
+def check(checks: dict[str, str]) -> list[str]:
+    failed = []
+    for name, cmd in checks.items():
+        ok = subprocess.run([*ssh_args(), cmd], capture_output=True).returncode == 0
+        print(f"{'PASS' if ok else 'FAIL'}  {name}", flush=True)
+        if not ok:
+            failed.append(name)
+    return failed
+
+
+def boot_installed(qemu_bin: Path, ovmf: Path) -> subprocess.Popen[bytes]:
+    vm = qemu(qemu_bin, ovmf, None)
+    unlock_luks(600)
+    wait_ssh(600)
+    return vm
 
 
 def poweroff() -> None:
@@ -142,49 +177,71 @@ def main() -> int:
     VARS.chmod(0o644)
     run(str(qemu_bin / "bin/qemu-img"), "create", "-f", "qcow2", str(DISK), "64G")
 
+    run("git", "-C", str(REPO), "bundle", "create", str(BUNDLE), "HEAD")
+
+    # --- stage 1: plain ISO -> clone -> scripts/install-base --vm ---
     vm = qemu(qemu_bin, ovmf, iso)
     try:
         wait_ssh(300)
-        # The ISO must evaluate the flake without GitHub (private `vn` input).
-        remote("nix flake metadata --offline /etc/dot >/dev/null")
-        # --- the same steps as doc/nixos-migration.md, Phase 1 ---
-        remote(f"printf %s {PASSPHRASE} > /tmp/secret.key")
+        upload(BUNDLE, "/tmp/dot.bundle")
+        remote("nix-shell -p git --run 'git clone -q /tmp/dot.bundle /tmp/dot'")
         remote(
-            "disko --mode destroy,format,mount --yes-wipe-all-disks "
-            f"--flake {FLAKE_ON_ISO}"
+            "INSTALL_ASSUME_YES=1 "
+            f"INSTALL_LUKS_PASSPHRASE={PASSPHRASE} INSTALL_LOGIN_PASSWORD={LOGIN_PASSWORD} "
+            "/tmp/dot/scripts/install-base --vm"
         )
-        remote("install -d -m 755 /mnt/etc/ssh")
-        run(
-            "scp", "-P", PORT, "-i", str(CLIENT_KEY), *SSH_OPTS,
-            str(HOST_KEY), f"{HOST_KEY}.pub", "root@localhost:/mnt/etc/ssh/",
-        )  # fmt: skip
-        remote("chmod 600 /mnt/etc/ssh/ssh_host_ed25519_key")
-        remote(f"nixos-install --no-root-passwd --flake {FLAKE_ON_ISO}")
         poweroff()
         stop(vm, 120)
     finally:
         if vm.poll() is None:
             vm.kill()
 
-    vm = qemu(qemu_bin, ovmf, None)
+    failed = []
+    vm = boot_installed(qemu_bin, ovmf)
     try:
-        unlock_luks(600)
-        wait_ssh(600)
-        checks = {
-            "greetd running": "systemctl is-active greetd.service",
-            "sops password decrypted": "test -s /run/secrets-for-users/user-password",
-            "/home on @home": "findmnt -no OPTIONS /home | grep -q 'subvol=/@home'",
-            "LUKS mapping active": "cryptsetup status cryptroot | grep -q 'is active'",
-            "swapfile on": "swapon --show=NAME --noheadings | grep -q swapvol/swapfile",
-            "snapper timer": "systemctl is-active snapper-timeline.timer",
-            "home-manager": "systemctl is-active home-manager-jantrojak.service",
-        }
-        failed = []
-        for name, cmd in checks.items():
-            ok = subprocess.run([*ssh_args(), cmd], capture_output=True).returncode == 0
-            print(f"{'PASS' if ok else 'FAIL'}  {name}", flush=True)
-            if not ok:
-                failed.append(name)
+        failed += check(
+            {
+                "stage 1: sops password decrypted": "test -s /run/secrets-for-users/user-password",
+                "stage 1: LUKS mapping active": "cryptsetup status cryptroot | grep -q 'is active'",
+                "stage 1: git present": "command -v git",
+                "stage 1: no desktop yet": "! systemctl is-active greetd.service",
+            }
+        )
+        # --- stage 2: clone as the user, build as the user, activate as root ---
+        upload(BUNDLE, "/tmp/dot.bundle")
+        remote("chmod 644 /tmp/dot.bundle")
+        remote(
+            "runuser -u jantrojak -- git clone -q /tmp/dot.bundle /home/jantrojak/.dot"
+        )
+        remote(
+            "cd /home/jantrojak && runuser -u jantrojak -- nixos-rebuild build "
+            "--flake /home/jantrojak/.dot#p15v-rehearsal"
+        )
+        remote(
+            "sys=$(readlink -f /home/jantrojak/result) && "
+            "nix-env -p /nix/var/nix/profiles/system --set $sys && "
+            "$sys/bin/switch-to-configuration boot"
+        )
+        poweroff()
+        stop(vm, 120)
+    finally:
+        if vm.poll() is None:
+            vm.kill()
+
+    vm = boot_installed(qemu_bin, ovmf)
+    try:
+        failed += check(
+            {
+                "greetd running": "systemctl is-active greetd.service",
+                "sops password decrypted": "test -s /run/secrets-for-users/user-password",
+                "/home on @home": "findmnt -no OPTIONS /home | grep -q 'subvol=/@home'",
+                "LUKS mapping active": "cryptsetup status cryptroot | grep -q 'is active'",
+                "swapfile on": "swapon --show=NAME --noheadings | grep -q swapvol/swapfile",
+                "snapper timer": "systemctl is-active snapper-timeline.timer",
+                "home-manager": "systemctl is-active home-manager-jantrojak.service",
+                "dotfiles linked": "test -e /home/jantrojak/.config/sway/config",
+            }
+        )
         poweroff()
         return 1 if failed else 0
     finally:

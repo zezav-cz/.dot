@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Stage 1 of the p15v install: run as root on the NixOS minimal ISO, from a
+# clone of this repo (doc/nixos-migration.md, Phase 1):
+#
+#   sudo -i
+#   nix-shell -p git --run 'git clone https://github.com/zezav-cz/.dot /tmp/dot'
+#   /tmp/dot/scripts/install-base            # --vm in the VM run
+#
+# Installs p15v-base (disk layout, boot, user, Wi-Fi; no desktop) and stops.
+# Everything that can fail is checked before the disk is touched: network,
+# host key, that the host key decrypts the secrets, the login password.
+#
+# Non-interactive use (scripts/vm-rehearsal): INSTALL_ASSUME_YES=1,
+# INSTALL_LUKS_PASSPHRASE, INSTALL_LOGIN_PASSWORD.
+set -euo pipefail
+
+repo=$(cd "$(dirname "$0")/.." && pwd)
+export NIX_CONFIG="experimental-features = nix-command flakes"
+
+if [[ ${1:-} == --vm ]]; then
+  target=p15v-rehearsal-base
+  disk=/dev/vda
+  sops_file=$repo/secrets/vm.yaml
+  host_pub=$repo/secrets/rehearsal/ssh_host_ed25519_key.pub
+else
+  target=p15v-base
+  disk=/dev/nvme0n1
+  sops_file=$repo/secrets/p15v.yaml
+  host_pub=$repo/secrets/p15v-ssh-host-key.pub
+fi
+
+say() { printf '\n\033[1m>> %s\033[0m\n' "$*"; }
+die() {
+  printf '\033[31m!! %s\033[0m\n' "$*" >&2
+  exit 1
+}
+confirm() {
+  [[ ${INSTALL_ASSUME_YES:-} == 1 ]] && return
+  local a
+  read -rp "$1 Type 'yes': " a
+  [[ $a == yes ]] || die "aborted"
+}
+tools() {
+  nix shell --inputs-from "$repo" nixpkgs#sops nixpkgs#ssh-to-age nixpkgs#perl nixpkgs#gnupg -c "$@"
+}
+
+[[ $EUID -eq 0 ]] || die "run as root (sudo -i)"
+tmp=$(mktemp -d)
+cleanup() {
+  find "$tmp" -type f -exec shred -u {} + 2>/dev/null || true
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+
+say "1/6 network"
+curl -sfI https://cache.nixos.org >/dev/null ||
+  die "offline. Wi-Fi: nmcli device wifi connect <ssid> --ask"
+
+say "2/6 host key"
+if [[ $target == p15v-rehearsal-base ]]; then
+  cp "$repo/secrets/rehearsal/ssh_host_ed25519_key" "$tmp/hostkey"
+else
+  echo "Decrypting with the OpenPGP key on the YubiKey (card PIN when asked)..."
+  if ! tools sh -c "gpg --batch --import '$repo/keys/jantrojak-pgp.asc' && gpg --card-status >/dev/null &&
+      GPG_TTY=\$(tty) sops decrypt --input-type binary --output-type binary '$repo/secrets/p15v-ssh-host-key.enc'" \
+    >"$tmp/hostkey"; then
+    echo "The YubiKey did not work here. Paste the backup age key from Bitwarden"
+    read -rsp "(AGE-SECRET-KEY-1...): " backup
+    echo
+    printf '%s\n' "$backup" >"$tmp/backup.agekey"
+    unset backup
+    SOPS_AGE_KEY_FILE=$tmp/backup.agekey tools sops decrypt --input-type binary --output-type binary \
+      "$repo/secrets/p15v-ssh-host-key.enc" >"$tmp/hostkey" || die "cannot decrypt the host key"
+  fi
+fi
+chmod 600 "$tmp/hostkey"
+[[ "$(ssh-keygen -y -f "$tmp/hostkey" | cut -d' ' -f1-2)" == "$(cut -d' ' -f1-2 "$host_pub")" ]] ||
+  die "host key does not match $host_pub"
+echo "host key OK"
+
+say "3/6 secrets and login password"
+# The installed system decrypts its secrets with this host key at boot: prove
+# that works now, and that the password you will type matches the hash.
+tools ssh-to-age -private-key -i "$tmp/hostkey" >"$tmp/host.agekey"
+hash=$(SOPS_AGE_KEY_FILE=$tmp/host.agekey tools sops decrypt --extract '["user-password"]' "$sops_file") ||
+  die "the host key cannot decrypt $sops_file"
+pw=${INSTALL_LOGIN_PASSWORD:-}
+[[ -n $pw ]] || read -rsp "Login password for jantrojak (as you will type it at the login prompt): " pw
+echo
+# shellcheck disable=SC2016 # $ARGV is perl's, not the shell's
+[[ "$(tools perl -e 'print crypt($ARGV[0], $ARGV[1])' "$pw" "$hash")" == "$hash" ]] ||
+  die "login password does not match user-password in $sops_file; fix the secret first"
+unset pw
+echo "login password OK"
+
+say "4/6 target disk"
+lsblk -o NAME,SIZE,MODEL,SERIAL,FSTYPE "$disk" || die "$disk not found"
+confirm "Wipe $disk completely?"
+
+say "5/6 LUKS passphrase"
+if [[ -n ${INSTALL_LUKS_PASSPHRASE:-} ]]; then
+  p1=$INSTALL_LUKS_PASSPHRASE
+else
+  echo "ASCII letters and digits only: the initrd uses the plain us keymap."
+  read -rsp "LUKS passphrase: " p1
+  echo
+  read -rsp "Again: " p2
+  echo
+  [[ $p1 == "$p2" ]] || die "passphrases differ"
+fi
+# disko reads it from this path while formatting (hosts/p15v/disko.nix)
+printf '%s' "$p1" >/tmp/secret.key
+unset p1 p2
+
+say "6/6 install $target"
+nix run "$repo#disko" -- --mode destroy,format,mount --yes-wipe-all-disks --flake "$repo#$target"
+shred -u /tmp/secret.key
+install -d -m 755 /mnt/etc/ssh
+install -m 600 "$tmp/hostkey" /mnt/etc/ssh/ssh_host_ed25519_key
+cp "$host_pub" /mnt/etc/ssh/ssh_host_ed25519_key.pub
+nixos-install --no-root-passwd --flake "$repo#$target"
+
+say "Stage 1 done. Next:"
+cat <<EOF
+  reboot                      # remove the USB stick / ISO; LUKS passphrase at boot
+  # log in on the console as jantrojak, then:
+  git clone https://github.com/zezav-cz/.dot ~/.dot
+  # build as you (Nix refuses a root-read of a repo you own), activate as root
+  nixos-rebuild switch --sudo --flake ~/.dot#${target%-base}
+  reboot                      # -> tuigreet -> sway
+EOF

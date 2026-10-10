@@ -12,9 +12,10 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # private repo, has its own flake.nix (packages.default via buildGoModule)
+    # our own repo (public, fetched over HTTPS so root and the installer need no
+    # SSH key); has its own flake.nix (packages.default via buildGoModule)
     vn = {
-      url = "git+ssh://git@github.com/zezav-cz/vn.git?ref=refs/tags/v0.1.0";
+      url = "git+https://github.com/zezav-cz/vn.git?ref=refs/tags/v0.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     disko = {
@@ -58,10 +59,21 @@
           ]
           ++ modules;
         };
-      mkIso =
+      # Stage 1 of the install: nixos/minimal.nix only (no desktop, no
+      # home-manager), so it installs quickly from the plain NixOS ISO.
+      mkBase =
         modules:
         lib.nixosSystem {
           specialArgs = { inherit inputs self; };
+          modules = [
+            { nixpkgs.pkgs = pkgs; }
+            ./nixos/minimal.nix
+          ]
+          ++ modules;
+        };
+      mkIso =
+        modules:
+        lib.nixosSystem {
           modules = [
             { nixpkgs.pkgs = pkgs; }
             ./hosts/iso
@@ -85,7 +97,10 @@
           ./hosts/vm/interactive.nix
         ];
         p15v = mkHost [ ./hosts/p15v ];
+        p15v-base = mkBase [ ./hosts/p15v/base.nix ];
+        # the same two stages for the VM (scripts/install-base --vm)
         p15v-rehearsal = mkHost [ ./hosts/p15v-rehearsal.nix ];
+        p15v-rehearsal-base = mkBase [ ./hosts/p15v-rehearsal.nix ];
         iso = mkIso [ ];
         iso-rehearsal = mkIso [ ./hosts/iso/rehearsal.nix ];
       };
@@ -98,6 +113,9 @@
           homeArgs
           ;
       };
+
+      # `nix run <repo>#disko` on the installer ISO (scripts/install-base)
+      packages.${system}.disko = inputs.disko.packages.${system}.disko;
 
       formatter.${system} = pkgs.nixfmt-tree;
     };

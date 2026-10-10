@@ -9,9 +9,13 @@ The repo also defines the NixOS system for the p15v laptop (ThinkPad P15v Gen 1)
 | `flake.nix` | inputs, `mkHost`, `nixosConfigurations`, `homeConfigurations`, `checks`, `formatter` |
 | `nixos/` | system modules shared by every host, one per former ansible role (`base`, `users`, `secrets`, `home`, `shell`, `desktop-sway`, `greetd`, `logind`, `fonts`, `security`, `theme`) |
 | `hosts/vm/` | QEMU guest: `default.nix` (used by the NixOS test too) and `interactive.nix` (GL display, live repo) |
+| `hosts/p15v/` | the laptop: `base.nix` (disk, boot, firmware, Wi-Fi; stage 1 of the install) and `default.nix` (+ NVIDIA) |
+| `hosts/p15v-rehearsal.nix`, `hosts/iso/` | the same two install stages in QEMU, and the plain NixOS minimal ISO |
+| `nixos/minimal.nix` | the subset of `nixos/` stage 1 (`p15v-base`) installs: nix, network, sshd, sops, the user |
 | `home/` | the user environment: `default.nix`, `packages.nix`, `dotfiles.nix`, `dotfiles-packages.nix`; `generic-linux.nix` is Ubuntu-only |
 | `checks/`, `tests/` | `nix flake check` definitions and the headless desktop test |
-| `keys/jantrojak.pub` | public SSH keys (user `authorized_keys`, installer ISO) |
+| `keys/` | public keys: `jantrojak.pub` (SSH, the user's `authorized_keys`), `jantrojak-pgp.asc` (the YubiKey's OpenPGP key, sops recipient) |
+| `scripts/install-base`, `scripts/vm-rehearsal`, `scripts/vm-install` | stage 1 of the install, its automated rehearsal, and a VM for a run by hand (`doc/nixos-migration.md`) |
 | `.sops.yaml`, `secrets/` | sops recipients and encrypted secrets |
 
 Every host gets the same `pkgs` instance (`allowUnfree`), so modules under `nixos/` and `hosts/` never set `nixpkgs.config`.
@@ -37,6 +41,8 @@ The user has a private group `jantrojak` with gid 1001, like on Ubuntu: restored
 | `mise run vm` | builds `nixosConfigurations.vm` and opens it in QEMU (KVM, virtio-gpu GL); log in as `jantrojak` / `vm` |
 | `mise run vm:reset` | deletes `.vm/vm.qcow2`, the next boot starts from a fresh disk |
 | `mise run vm:test` | runs the headless desktop test, screenshot at `.vm/test/desktop.png` |
+| `mise run vm:install` / `vm:install:reset` | QEMU window with the plain NixOS ISO and an empty disk, for doing the two-stage install by hand |
+| `mise run vm:rehearsal` | both install stages unattended in QEMU, with checks after each |
 
 The interactive VM mounts the host's `~/.dot` at `/mnt/dot` (9p) and links `~/.dot` to it; edit a file on the host and run `swaymsg reload` in the guest. If sway shows a black screen (host without virgl), add `WLR_RENDERER = "pixman"` to `environment.sessionVariables` in `hosts/vm/interactive.nix`.
 
@@ -55,7 +61,7 @@ NixOS tests need KVM inside the nix build sandbox. On the Ubuntu host that is th
 
 ## Secrets
 
-sops-nix with age. `.sops.yaml` lists the recipients per file. `secrets/vm.yaml` holds only the VM test password (`vm`) and is encrypted for a throwaway key committed on purpose (`secrets/vm-test.agekey`); the VM copies it to `/run` at activation because sops-nix refuses a key file in the store. Edit it with:
+sops-nix with age. `.sops.yaml` lists the recipients per file: `secrets/p15v.yaml` is encrypted to the OpenPGP key on the YubiKey (PIV stays off, see `doc/yubikey.md`), an offline backup age key kept in Bitwarden, and the laptop's SSH host key (`scripts/p15v-secrets-init` created them). `secrets/vm.yaml` holds only the VM test password (`vm`) and is encrypted for a throwaway key committed on purpose (`secrets/vm-test.agekey`); the VM copies it to `/run` at activation because sops-nix refuses a key file in the store. Edit it with:
 
 ```sh
 SOPS_AGE_KEY_FILE=secrets/vm-test.agekey nix shell --inputs-from . nixpkgs#sops -c sops secrets/vm.yaml

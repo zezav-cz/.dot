@@ -1,14 +1,20 @@
 # Migrating p15v to NixOS
 
-Runbook for wiping the ThinkPad P15v (Ubuntu) and installing the NixOS configuration from this repo. The install commands in Phase 1 are the same ones `mise run vm:rehearsal` runs in QEMU (`scripts/vm-rehearsal`), so they have been exercised end to end before they touch the laptop. Background on the configuration itself: `doc/nixos.md`.
+Runbook for wiping the ThinkPad P15v (Ubuntu) and installing the NixOS configuration from this repo. The install has two stages, like a normal NixOS install:
+
+1. **Stage 1** — from the plain NixOS minimal ISO: clone this repo and run `scripts/install-base`. It installs `p15v-base`: the disk layout (LUKS2 + btrfs), boot, your user and Wi-Fi, but no desktop.
+2. **Stage 2** — on the installed system: clone the repo again and `nixos-rebuild switch` to the full `p15v` desktop.
+
+`mise run vm:rehearsal` runs both stages unattended in QEMU, and `mise run vm:install` lets you do them by hand in a VM (see [Virtual run](#virtual-run)). Background on the configuration itself: `doc/nixos.md`.
 
 ## Gate — all must hold before Phase 1
 
-- [ ] The commit you will install is pushed and the ISO is built from it (Phase 0), not from a dirty working tree.
+- [ ] The commit you will install is pushed to GitHub (stage 1 and 2 clone it from there).
 - [ ] `nix flake check -L` is green on that commit (`mise run nix:check`).
 - [ ] `mise run vm:rehearsal` exits 0 on that commit.
+- [ ] You did one [virtual run](#virtual-run) by hand.
 - [ ] `secrets/p15v.yaml` and `secrets/p15v-ssh-host-key.enc` exist (`scripts/p15v-secrets-init`) and `sops decrypt secrets/p15v.yaml` works with the YubiKey (OpenPGP).
-- [ ] `scripts/check-login-password` says `OK` for the password you will type at the login prompt. The system has no root password and `users.mutableUsers = false`: a wrong hash means no login and no sudo.
+- [ ] `scripts/check-login-password` says `OK` for the password you will type at the login prompt. The system has no root password and `users.mutableUsers = false`: a wrong hash means no login and no sudo. (`install-base` checks it again before it wipes anything.)
 - [ ] The offline backup age key is retrievable from Bitwarden (it decrypts both secrets files without the YubiKey).
 - [ ] `mise run migration:preflight` shows no repo with unpushed or uncommitted work you still need (push or bundle them first).
 - [ ] The restic backup below is done and a sample restore was verified.
@@ -23,81 +29,69 @@ nix shell nixpkgs#restic -c restic -r "$R" init
 nix shell nixpkgs#restic -c restic -r "$R" backup ~ --exclude ~/.cache --exclude ~/.local/share/Trash --exclude '~/snap/*/common/.cache'
 nix shell nixpkgs#restic -c restic -r "$R" restore latest --target /tmp/restore-test --include ~/.ssh
 diff -r ~/.ssh /tmp/restore-test$HOME/.ssh && echo RESTORE-OK
+```
 
-# ISO from the pushed commit, not the working tree
-rev=$(git -C ~/.dot rev-parse HEAD); git -C ~/.dot status --short | head
-nix build "git+file://$HOME/.dot?rev=$rev#nixosConfigurations.iso.config.system.build.isoImage" -o /tmp/iso
+USB stick: the official "Minimal ISO image" from <https://nixos.org/download> (unstable or the latest release), or the same thing built from this flake's nixpkgs:
+
+```bash
+nix build ~/.dot#nixosConfigurations.iso.config.system.build.isoImage -o /tmp/iso
 lsblk                                   # find the USB stick, e.g. /dev/sdX
 sudo dd if="$(ls /tmp/iso/iso/*.iso)" of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
-## Phase 1 — install (from the USB stick)
+## Phase 1 — stage 1 from the USB stick
 
-Boot the stick (F12 at the Lenovo logo; Secure Boot off). Connect to the network: ethernet, or `nmcli device wifi connect <ssid> --ask`. The install downloads packages from cache.nixos.org and builds the few local ones (NVIDIA module, claude-desktop, vn); the flake and all its inputs, the private `vn` repo included, are already on the stick.
+Boot the stick (F12 at the Lenovo logo; Secure Boot off). Network: ethernet, or `nmcli device wifi connect <ssid> --ask`. Plug in the YubiKey.
 
 ```bash
 sudo -i
-nix flake metadata --offline /etc/dot >/dev/null && echo FLAKE-OK
-
-# 1. host key first, while the disk is still intact: it is encrypted to the
-#    OpenPGP key on the YubiKey (card PIN when asked)
-gpg --import /etc/dot/keys/jantrojak-pgp.asc
-gpg --card-status >/dev/null              # creates the card stubs for the subkeys
-export GPG_TTY=$(tty)
-sops decrypt --input-type binary --output-type binary /etc/dot/secrets/p15v-ssh-host-key.enc > /tmp/ssh_host_ed25519_key
-#    Fallback if the card does not work here: paste the backup age key from
-#    Bitwarden into /tmp/backup.agekey and run the same line with
-#    SOPS_AGE_KEY_FILE=/tmp/backup.agekey in front.
-test -s /tmp/ssh_host_ed25519_key && echo HOSTKEY-OK
-
-# 2. the target disk: must be the internal 512 GB Toshiba NVMe (KXG6AZNV512G)
-lsblk -dno NAME,SIZE,MODEL /dev/nvme0n1
-
-# 3. LUKS passphrase, typed twice. ASCII letters/digits only: the initrd has
-#    the plain us keymap.
-read -rsp 'LUKS passphrase: ' P1; echo; read -rsp 'Again: ' P2; echo
-[ "$P1" = "$P2" ] && printf %s "$P1" > /tmp/secret.key && echo PASS-OK; unset P1 P2
-
-disko --mode destroy,format,mount --yes-wipe-all-disks --flake /etc/dot#p15v
-
-install -d -m 755 /mnt/etc/ssh
-install -m 600 /tmp/ssh_host_ed25519_key /mnt/etc/ssh/ssh_host_ed25519_key
-cp /etc/dot/secrets/p15v-ssh-host-key.pub /mnt/etc/ssh/ssh_host_ed25519_key.pub
-
-nixos-install --no-root-passwd --flake /etc/dot#p15v
-reboot
+nix-shell -p git --run 'git clone https://github.com/zezav-cz/.dot /tmp/dot'
+/tmp/dot/scripts/install-base
 ```
 
-At boot: LUKS passphrase, then tuigreet → `jantrojak` with the password checked in the gate. The desktop is still bare at this point: every dotfile link points at `~/.dot`, which Phase 2 creates.
+`install-base` asks before every step that matters and checks everything it can before touching the disk:
 
-## Phase 2 — restore and switch to the real checkout
+1. network;
+2. decrypts the host key with the OpenPGP key on the YubiKey (card PIN); if the card does not work on the ISO it asks for the backup age key from Bitwarden instead, and checks the key against `secrets/p15v-ssh-host-key.pub`;
+3. proves the host key decrypts `secrets/p15v.yaml` (what the installed system does at every boot) and that your login password matches the stored hash;
+4. shows the target disk (`/dev/nvme0n1`, the 512 GB Toshiba) and wants `yes`;
+5. asks the LUKS passphrase twice (ASCII letters and digits only: the initrd uses the plain us keymap);
+6. disko (wipes the disk), host key into `/mnt/etc/ssh`, `nixos-install --flake /tmp/dot#p15v-base`.
 
-Log in on tty2 (Ctrl+Alt+F2) or in the plain sway session. Mount the backup disk; NixOS mounts removable media under `/run/media`:
+Then `reboot` and remove the stick. At boot: LUKS passphrase, then the text login prompt.
+
+## Phase 2 — stage 2 on the installed system
+
+Log in as `jantrojak`. Wi-Fi `home` connects by itself (from the secrets); elsewhere use `nmcli device wifi connect <ssid> --ask`.
+
+```bash
+git clone https://github.com/zezav-cz/.dot ~/.dot
+# builds as you (Nix refuses to read a repo you own as root), activates as root
+nixos-rebuild switch --sudo --flake ~/.dot#p15v
+reboot                                   # -> tuigreet -> sway
+```
+
+The first build downloads a lot and compiles the few local packages (NVIDIA module, claude-desktop, vn). After the reboot you get the full desktop; the dotfile links point at `~/.dot`.
+
+## Phase 3 — restore
+
+Mount the backup disk; NixOS mounts removable media under `/run/media`:
 
 ```bash
 udisksctl mount -b /dev/sdX1              # or: sudo mount /dev/sdX1 /mnt
 R=/run/media/$USER/<disk>/p15v-restic     # (or /mnt/p15v-restic)
 restic() { nix shell nixpkgs#restic -c restic -r "$R" "$@"; }
-
-# SSH and GPG first: the clone below needs the keys in ~/.ssh/keys
-restic restore latest --target / --include ~/.ssh --include ~/.gnupg
-rm -rf ~/.gnupg/*.conf.hm-backup 2>/dev/null   # see the note below
-
-git clone git@github.com:zezav-cz/.dot.git ~/.dot
-# evaluate as the user (whose agent can reach the private vn repo), activate as root
-nixos-rebuild switch --sudo --flake ~/.dot#p15v
-
-restic restore latest --target / --include ~/.aws --include ~/.kube --include ~/.config/gcloud --include ~/.claude --include ~/.claude-personal --include ~/.config/Claude-personal --include ~/.config/Claude-work --include ~/ops/vnotes
+restic restore latest --target / --include ~/.ssh --include ~/.gnupg --include ~/.aws --include ~/.kube --include ~/.config/gcloud --include ~/.claude --include ~/.claude-personal --include ~/.config/Claude-personal --include ~/.config/Claude-work --include ~/ops/vnotes
+git -C ~/.dot remote set-url origin git@github.com:zezav-cz/.dot.git
+nixos-rebuild switch --sudo --flake ~/.dot#p15v   # relinks what the restore replaced
 ~/.dot/scripts/bootstrap-user              # repo clones, vnotes, MCP servers
 ```
 
-Log out and back in through tuigreet: now the full sway session (kanshi, waybar, keybindings) comes up.
-
-Note: the backup contains the old stow symlinks inside `~/.gnupg`, `~/.claude` and `~/.claude-personal`. Restoring over the home-manager links replaces them; the next activation moves the restored ones aside as `*.hm-backup` and relinks. If an activation ever fails with "would be clobbered" because a `.hm-backup` already exists, delete the stale `.hm-backup` files and run the switch again.
+The backup contains the old stow symlinks inside `~/.gnupg`, `~/.claude` and `~/.claude-personal`. Restoring replaces the home-manager links there; the switch above moves the restored ones aside as `*.hm-backup` and relinks. If a later switch fails with "would be clobbered" because a `.hm-backup` already exists, delete the stale `.hm-backup` files and switch again.
 
 Firefox: the old profile is under `~/snap/firefox/common/.mozilla/firefox/` in the backup; restore that directory to `~/.mozilla/firefox/`.
 
-## Phase 3 — hardware checklist (what the VM cannot cover)
+## Phase 4 — hardware checklist (what the VM cannot cover)
 
 - [ ] Sway runs on the iGPU: `tr '\0' '\n' < /proc/$(pgrep -x sway)/environ | grep WLR_DRM_DEVICES` → `/dev/dri/igpu`.
 - [ ] dGPU offload: `nvidia-offload glxinfo -B | grep -i nvidia` (glxinfo: `nix shell nixpkgs#mesa-demos`).
@@ -115,9 +109,35 @@ Firefox: the old profile is under `~/snap/firefox/common/.mozilla/firefox/` in t
 ## Rollback and recovery
 
 - A configuration change breaks something: pick the previous generation in the systemd-boot menu, then `sudo nixos-rebuild switch --rollback`.
-- Cannot log in (wrong password hash): boot the USB stick, then `cryptsetup open /dev/nvme0n1p2 cryptroot`, `mount -o subvol=@root /dev/mapper/cryptroot /mnt`, `mount -o subvol=@nix /dev/mapper/cryptroot /mnt/nix`, `mount /dev/nvme0n1p1 /mnt/boot`. On another machine (or the ISO with the YubiKey) fix `user-password` in `secrets/p15v.yaml` (`sops secrets/p15v.yaml`), commit, and re-run `nixos-install --no-root-passwd --flake <repo>#p15v` against the mounted system.
-- The install itself is unusable: boot an Ubuntu ISO, reinstall, and restore `~` from restic. Ubuntu is gone after `disko --mode destroy`; the backup is the only way back.
+- Stage 2 fails: you still have the working `p15v-base` system; fix the repo (on another machine or with `nano` on the laptop) and run the switch again.
+- Cannot log in (wrong password hash): boot the USB stick, `cryptsetup open /dev/nvme0n1p2 cryptroot`, `mount -o subvol=@root /dev/mapper/cryptroot /mnt`, `mount -o subvol=@nix /dev/mapper/cryptroot /mnt/nix`, `mount /dev/nvme0n1p1 /mnt/boot`. Fix `user-password` in `secrets/p15v.yaml` (`sops secrets/p15v.yaml`, on another machine or the stick with the YubiKey), push, clone it on the stick and re-run `nixos-install --no-root-passwd --flake <clone>#p15v-base` against the mounted system.
+- The install itself is unusable: boot an Ubuntu ISO, reinstall, and restore `~` from restic. Ubuntu is gone after stage 1 wipes the disk; the backup is the only way back.
+
+## Virtual run
+
+The same two stages by hand in a VM, with the VM targets: `install-base --vm` installs `p15v-rehearsal-base` to `/dev/vda` with the throwaway VM secrets (login password `vm`) and the rehearsal host key, so no YubiKey is needed.
+
+```bash
+mise run vm:install          # QEMU window: NixOS ISO + empty 64 GB disk (UEFI)
+```
+
+In the VM:
+
+```bash
+sudo -i
+nix-shell -p git --run 'git clone https://github.com/zezav-cz/.dot /tmp/dot'
+/tmp/dot/scripts/install-base --vm       # login password: vm; any LUKS passphrase
+reboot                                   # boots the installed disk
+# LUKS prompt: the VM variant shows it on the serial console, so in the QEMU
+# window open View -> serial0 (Ctrl+Alt+2), type it there, then back with Ctrl+Alt+1
+# log in as jantrojak / vm
+git clone https://github.com/zezav-cz/.dot ~/.dot
+nixos-rebuild switch --sudo --flake ~/.dot#p15v-rehearsal   # sudo password: vm
+reboot                                   # -> tuigreet -> sway
+```
+
+The disk persists across `mise run vm:install` runs; `mise run vm:install:reset` starts over. The VM clones from GitHub, so it tests what is pushed.
 
 ## Afterwards (separate change)
 
-Once p15v runs NixOS, remove what only Ubuntu needs: `ansible/` (except `playbook-user.yml` and the user roles), `installer/`, `install.py`, the standalone `homeConfigurations` and `home/generic-linux.nix`, `checks.dotfiles-parity`, and the Ubuntu-only `/etc/udev/rules.d/99-kvm-nix.rules` disappears with the wipe.
+Once p15v runs NixOS, remove what only Ubuntu needs: `ansible/` (except `playbook-user.yml` and the user roles), `installer/`, `install.py`, the standalone `homeConfigurations` and `home/generic-linux.nix`, `checks.dotfiles-parity`; the Ubuntu-only `/etc/udev/rules.d/99-kvm-nix.rules` disappears with the wipe.

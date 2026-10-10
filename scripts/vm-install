@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Your own virtual run of the two-stage install (doc/nixos-migration.md,
+# "Virtual run"): a QEMU window with the plain NixOS minimal ISO, an empty
+# 64 GB disk and UEFI, just like the laptop. The disk persists in .vm/install/
+# across runs (after stage 1 the VM boots from it); --reset starts over.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+w=.vm/install
+[[ ${1:-} == --reset ]] && rm -rf "$w"
+mkdir -p "$w"
+
+q=$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#qemu_kvm)
+o=$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#OVMF.fd)
+iso_dir=$(nix build --no-link --print-out-paths .#nixosConfigurations.iso.config.system.build.isoImage)
+iso=$(echo "$iso_dir"/iso/*.iso)
+
+[[ -e $w/disk.qcow2 ]] || "$q/bin/qemu-img" create -q -f qcow2 "$w/disk.qcow2" 64G
+[[ -e $w/OVMF_VARS.fd ]] || install -m 644 "$o/FV/OVMF_VARS.fd" "$w/OVMF_VARS.fd"
+
+# Once stage 1 wrote its EFI boot entry, the firmware boots the disk first
+# even with the ISO still attached.
+exec "$q/bin/qemu-system-x86_64" -enable-kvm -machine q35 -cpu host -m 8192 -smp 4 \
+  -drive "if=pflash,format=raw,readonly=on,file=$o/FV/OVMF_CODE.fd" \
+  -drive "if=pflash,format=raw,file=$w/OVMF_VARS.fd" \
+  -drive "file=$w/disk.qcow2,if=virtio,format=qcow2" \
+  -cdrom "$iso" \
+  -nic user,model=virtio-net-pci \
+  -device virtio-vga-gl -display gtk,gl=on
