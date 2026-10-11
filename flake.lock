@@ -493,16 +493,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1788631302,
-        "narHash": "sha256-4dzw7HmSAjlaM4DvuTRBZ6qaKhnoFfSuoBRs2Lo6qjc=",
-        "ref": "refs/tags/v0.1.0",
-        "rev": "b671d8d6900fcd9a5c99c006f61b85826471c2c5",
-        "revCount": 12,
+        "lastModified": 1791727876,
+        "narHash": "sha256-/chBKIdnepFr9K3h2SOQNo2kfXsr/s3Fb06ybCutgIA=",
+        "ref": "refs/tags/v0.7.0",
+        "rev": "359be36747406a037a44e31e80a0c9947439a776",
+        "revCount": 18,
         "type": "git",
         "url": "ssh://git@github.com/zezav-cz/vn.git"
       },
       "original": {
-        "ref": "refs/tags/v0.1.0",
+        "ref": "refs/tags/v0.7.0",
         "type": "git",
         "url": "ssh://git@github.com/zezav-cz/vn.git"
       }
